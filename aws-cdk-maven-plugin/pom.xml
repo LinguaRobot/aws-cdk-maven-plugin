@@ -79,7 +79,11 @@
         </dependency>
         <dependency>
             <groupId>io.linguarobot</groupId>
-            <artifactId>aws-cdk-maven-plugin-app-launcher</artifactId>
+            <artifactId>aws-cdk-maven-plugin-runtime</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.linguarobot</groupId>
+            <artifactId>aws-cdk-cloud-manifest</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -112,6 +116,10 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
         </dependency>
 
         <!-- Test Dependencies -->

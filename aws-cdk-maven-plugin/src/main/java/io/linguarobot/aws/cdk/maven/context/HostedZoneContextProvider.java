@@ -1,7 +1,6 @@
 package io.linguarobot.aws.cdk.maven.context;
 
 import io.linguarobot.aws.cdk.maven.CdkPluginException;
-import software.amazon.awscdk.cxapi.Environment;
 import software.amazon.awssdk.services.route53.Route53Client;
 import software.amazon.awssdk.services.route53.model.GetHostedZoneRequest;
 import software.amazon.awssdk.services.route53.model.GetHostedZoneResponse;
@@ -29,7 +28,7 @@ public class HostedZoneContextProvider implements ContextProvider {
 
     @Override
     public JsonValue getContextValue(JsonObject properties) {
-        Environment environment = ContextProviders.buildEnvironment(properties);
+        String environment = ContextProviders.buildEnvironment(properties);
         String domainName = getDomainName(properties);
         boolean isPrivate = properties.getBoolean("privateZone", false);
         String vpcId = properties.getString("vpcId", null);

@@ -1,5 +1,6 @@
 package io.linguarobot.aws.cdk.maven;
 
+import javax.annotation.Nullable;
 import java.util.Objects;
 
 /**
@@ -10,15 +11,24 @@ public class TemplateRef {
     private final String url;
     private final String body;
 
-    private TemplateRef(String url, String body) {
+    private TemplateRef(@Nullable String url, @Nullable String body) {
         this.url = url;
         this.body = body;
     }
 
+    /**
+     * Returns a template url or {@code null} in case this is a reference to the template body.
+     */
+    @Nullable
     public String getUrl() {
         return url;
     }
 
+    /**
+     * Returns a template body or {@code null} if the template is uploaded to S3 and the reference represents template
+     * URL.
+     */
+    @Nullable
     public String getBody() {
         return body;
     }

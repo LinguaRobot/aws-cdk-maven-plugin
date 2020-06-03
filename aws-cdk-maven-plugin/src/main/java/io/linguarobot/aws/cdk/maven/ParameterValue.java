@@ -16,7 +16,8 @@ public class ParameterValue {
         this.value = value;
     }
 
-    public @Nullable String get() {
+    @Nullable
+    public String get() {
         return value;
     }
 

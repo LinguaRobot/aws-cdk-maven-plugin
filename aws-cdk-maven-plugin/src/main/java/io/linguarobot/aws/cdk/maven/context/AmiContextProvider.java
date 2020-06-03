@@ -2,7 +2,6 @@ package io.linguarobot.aws.cdk.maven.context;
 
 import com.google.common.collect.ImmutableList;
 import io.linguarobot.aws.cdk.maven.CdkPluginException;
-import software.amazon.awscdk.cxapi.Environment;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeImagesRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeImagesResponse;
@@ -34,7 +33,7 @@ public class AmiContextProvider implements ContextProvider {
 
     @Override
     public JsonValue getContextValue(JsonObject properties) {
-        Environment environment = ContextProviders.buildEnvironment(properties);
+        String environment = ContextProviders.buildEnvironment(properties);
         try (Ec2Client ec2Client = awsClientProvider.getClient(Ec2Client.class, environment)) {
             DescribeImagesRequest describeImagesRequest = DescribeImagesRequest.builder()
                     .owners(getOwners(properties))

@@ -1,38 +1,59 @@
 package io.linguarobot.aws.cdk.maven;
 
+import com.google.common.collect.ImmutableMap;
+import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Represents Docker image build parameters.
  */
 public class ImageBuild {
 
+    @Nonnull
     private final Path contextDirectory;
-    private final Path dockerfile;
-    private final String tag;
-    private final String target;
-    private final Map<String, String> arguments;
 
-    public ImageBuild(Path contextDirectory, Path dockerfile, String tag, Map<String, String> arguments, @Nullable String target) {
-        this.contextDirectory = contextDirectory;
-        this.dockerfile = dockerfile;
-        this.tag = tag;
+    @Nonnull
+    private final Path dockerfile;
+
+    @Nonnull
+    private final String imageTag;
+
+    @Nullable
+    private final String target;
+
+    @Nonnull
+    Map<String, String> arguments;
+
+    private ImageBuild(@NotNull Path contextDirectory,
+                       @NotNull Path dockerfile,
+                       @NotNull String imageTag,
+                       @Nullable String target,
+                       @Nullable Map<String, String> arguments) {
+        this.contextDirectory = Objects.requireNonNull(contextDirectory, "Docker context directory path can't be null");
+        this.dockerfile = Objects.requireNonNull(dockerfile, "Docker Dockerfile path can't be null");
+        this.imageTag = Objects.requireNonNull(imageTag, "Image tag can't be null");
         this.target = target;
-        this.arguments = arguments;
+        this.arguments = arguments != null ? ImmutableMap.copyOf(arguments) : ImmutableMap.of();
     }
 
+    @Nonnull
     public Path getContextDirectory() {
         return contextDirectory;
     }
 
+    @Nonnull
     public Path getDockerfile() {
         return dockerfile;
     }
 
-    public String getTag() {
-        return tag;
+    @Nonnull
+    public String getImageTag() {
+        return imageTag;
     }
 
     @Nullable
@@ -40,6 +61,7 @@ public class ImageBuild {
         return target;
     }
 
+    @Nonnull
     public Map<String, String> getArguments() {
         return arguments;
     }
@@ -47,12 +69,56 @@ public class ImageBuild {
     @Override
     public String toString() {
         return "ImageBuild{" +
-                "context=" + contextDirectory +
+                "contextDirectory=" + contextDirectory +
                 ", dockerfile=" + dockerfile +
-                ", tag='" + tag + '\'' +
+                ", imageTag='" + imageTag + '\'' +
                 ", target='" + target + '\'' +
                 ", arguments=" + arguments +
-                ", contextDirectory=" + contextDirectory +
                 '}';
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static final class Builder {
+
+        Map<String, String> arguments;
+        private Path contextDirectory;
+        private Path dockerfile;
+        private String imageTag;
+        private String target;
+
+        private Builder() {
+        }
+
+        public Builder withContextDirectory(@Nonnull Path contextDirectory) {
+            this.contextDirectory = contextDirectory;
+            return this;
+        }
+
+        public Builder withDockerfile(@Nonnull Path dockerfile) {
+            this.dockerfile = dockerfile;
+            return this;
+        }
+
+        public Builder withImageTag(@Nonnull String imageTag) {
+            this.imageTag = imageTag;
+            return this;
+        }
+
+        public Builder withTarget(@Nullable String target) {
+            this.target = target;
+            return this;
+        }
+
+        public Builder withArguments(@Nullable Map<String, String> arguments) {
+            this.arguments = arguments;
+            return this;
+        }
+
+        public ImageBuild build() {
+            return new ImageBuild(contextDirectory, dockerfile, imageTag, target, arguments);
+        }
     }
 }

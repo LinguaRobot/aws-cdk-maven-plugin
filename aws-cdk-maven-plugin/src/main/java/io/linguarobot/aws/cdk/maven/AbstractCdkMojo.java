@@ -1,5 +1,9 @@
 package io.linguarobot.aws.cdk.maven;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr353.JSR353Module;
 import io.linguarobot.aws.cdk.maven.api.AccountCredentialsProvider;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -28,6 +32,11 @@ import java.util.Optional;
  * An abstract Mojo that defines some parameters common for synthesis and deployment.
  */
 public abstract class AbstractCdkMojo extends AbstractMojo {
+
+    static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL)
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .registerModule(new JSR353Module());
 
     /**
      * The name of the application class defining your cloud infrastructure. The application class must either extend
