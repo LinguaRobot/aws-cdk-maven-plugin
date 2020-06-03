@@ -1,6 +1,5 @@
 package io.linguarobot.aws.cdk.maven.context;
 
-import software.amazon.awscdk.cxapi.Environment;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.AvailabilityZone;
 import software.amazon.awssdk.services.ec2.model.AvailabilityZoneState;
@@ -26,7 +25,7 @@ public class AvailabilityZonesContextProvider implements ContextProvider {
 
     @Override
     public JsonValue getContextValue(JsonObject properties) {
-        Environment environment = ContextProviders.buildEnvironment(properties);
+        String environment = ContextProviders.buildEnvironment(properties);
         try (Ec2Client ec2Client = awsClientProvider.getClient(Ec2Client.class, environment)) {
             return Stream.of(ec2Client.describeAvailabilityZones())
                     .filter(DescribeAvailabilityZonesResponse::hasAvailabilityZones)

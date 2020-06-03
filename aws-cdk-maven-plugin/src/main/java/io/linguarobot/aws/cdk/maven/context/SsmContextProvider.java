@@ -1,7 +1,6 @@
 package io.linguarobot.aws.cdk.maven.context;
 
 import io.linguarobot.aws.cdk.maven.CdkPluginException;
-import software.amazon.awscdk.cxapi.Environment;
 import software.amazon.awssdk.services.ssm.SsmClient;
 import software.amazon.awssdk.services.ssm.model.GetParameterRequest;
 import software.amazon.awssdk.services.ssm.model.GetParameterResponse;
@@ -26,7 +25,7 @@ public class SsmContextProvider implements ContextProvider {
 
     @Override
     public JsonValue getContextValue(JsonObject properties) {
-        Environment environment = ContextProviders.buildEnvironment(properties);
+        String environment = ContextProviders.buildEnvironment(properties);
         String parameterName = ContextProviders.getRequiredProperty(properties, "parameterName");
 
         try (SsmClient ssmClient = awsClientProvider.getClient(SsmClient.class, environment)) {
@@ -42,8 +41,8 @@ public class SsmContextProvider implements ContextProvider {
             }
 
             if (value == null) {
-                throw new CdkPluginException("The SSM parameter '" + parameterName + "' is not available for the following " +
-                        "environment " + environment.getName());
+                throw new CdkPluginException("The SSM parameter '" + parameterName + "' is not available for the " +
+                        "following environment: " + environment);
             }
 
             return Json.createValue(value);

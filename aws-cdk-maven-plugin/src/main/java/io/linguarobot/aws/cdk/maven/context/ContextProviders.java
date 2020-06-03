@@ -1,7 +1,6 @@
 package io.linguarobot.aws.cdk.maven.context;
 
 import io.linguarobot.aws.cdk.maven.CdkPluginException;
-import software.amazon.awscdk.cxapi.Environment;
 
 import javax.json.JsonObject;
 
@@ -11,16 +10,10 @@ public final class ContextProviders {
     private ContextProviders() {
     }
 
-    public static Environment buildEnvironment(JsonObject properties) {
+    public static String buildEnvironment(JsonObject properties) {
         String region = getRequiredProperty(properties, "region");
         String account = getRequiredProperty(properties, "account");
-        String name = "aws://" + account + "/" + region;
-
-        return Environment.builder()
-                .region(region)
-                .account(account)
-                .name(name)
-                .build();
+        return "aws://" + account + "/" + region;
     }
 
     public static String getRequiredProperty(JsonObject properties, String propertyName) {

@@ -1,8 +1,8 @@
 package io.linguarobot.aws.cdk.maven;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Represents CloudFormation stack parameter.
@@ -17,12 +17,14 @@ public class ParameterDefinition {
         this.defaultValue = defaultValue;
     }
 
+    @Nonnull
     public String getName() {
         return name;
     }
 
-    public Optional<String> getDefaultValue() {
-        return Optional.ofNullable(defaultValue);
+    @Nullable
+    public String getDefaultValue() {
+        return defaultValue;
     }
 
     @Override

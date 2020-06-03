@@ -70,7 +70,7 @@ public class DockerImageAssetPublisher {
             Repository repository = findRepository(repositoryName)
                     .orElseGet(() -> createRepository(repositoryName));
             String imageUri = String.join(":", repository.repositoryUri(), tag);
-            processRunner.run(ImmutableList.of("docker", "tag", imageBuild.getTag(), imageUri));
+            processRunner.run(ImmutableList.of("docker", "tag", imageBuild.getImageTag(), imageUri));
 
             logger.info("Publishing docker image, imageUri={}", imageUri);
             try {
@@ -101,7 +101,7 @@ public class DockerImageAssetPublisher {
         buildCommand.add("docker");
         buildCommand.add("build");
         buildCommand.add("--tag");
-        buildCommand.add(build.getTag());
+        buildCommand.add(build.getImageTag());
 
         build.getArguments().forEach((name, value) -> {
             buildCommand.add("--build-arg");

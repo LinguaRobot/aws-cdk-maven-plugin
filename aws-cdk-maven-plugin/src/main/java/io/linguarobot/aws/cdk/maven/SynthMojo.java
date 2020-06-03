@@ -1,8 +1,10 @@
 package io.linguarobot.aws.cdk.maven;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
+import io.linguarobot.aws.cdk.CloudManifest;
 import io.linguarobot.aws.cdk.maven.context.AmiContextProvider;
 import io.linguarobot.aws.cdk.maven.context.AvailabilityZonesContextProvider;
 import io.linguarobot.aws.cdk.maven.context.AwsClientProvider;
@@ -37,10 +39,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.toolchain.ToolchainManager;
-import org.codehaus.plexus.configuration.PlexusConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awscdk.cxapi.CloudAssembly;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -58,20 +58,14 @@ import javax.annotation.Nullable;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.json.JsonWriter;
 import javax.json.JsonWriterFactory;
 import javax.json.stream.JsonGenerator;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -164,7 +158,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
                 .build();
     }
 
-    protected CloudAssembly synthesize(String app, Path outputDirectory, EnvironmentResolver environmentResolver) {
+    protected CloudManifest synthesize(String app, Path outputDirectory, EnvironmentResolver environmentResolver) {
         Map<String, String> environment;
         if (SystemUtils.IS_OS_WINDOWS) {
             environment = System.getenv().entrySet().stream()
@@ -191,42 +185,43 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
 
         environment.computeIfAbsent(OUTPUT_DIRECTORY_VARIABLE_NAME, v -> outputDirectory.toString());
         environment.computeIfAbsent(DEFAULT_REGION_VARIABLE_NAME, v -> environmentResolver.getDefaultRegion().id());
-        environment.computeIfAbsent(DEFAULT_ACCOUNT_VARIABLE_NAME, v -> environmentResolver.getDefaultAccount().orElse(null));
+        if (environmentResolver.getDefaultAccount() != null) {
+            environment.computeIfAbsent(DEFAULT_ACCOUNT_VARIABLE_NAME, v -> environmentResolver.getDefaultAccount());
+        }
 
         JsonObject context = readContext();
 
         logger.info("Synthesizing the cloud assembly for the '{}' application", app);
-        CloudAssembly cloudAssembly = synthesize(app, outputDirectory, environment, context);
+        CloudManifest cloudManifest = synthesize(app, outputDirectory, environment, context);
 
-        while (cloudAssembly.getManifest().getMissing() != null && !cloudAssembly.getManifest().getMissing().isEmpty()) {
+        while (!cloudManifest.getMissingContexts().isEmpty()) {
             JsonObjectBuilder contextBuilder = Json.createObjectBuilder(context);
-            getManifest(outputDirectory).getJsonArray("missing").stream()
-                    .map(JsonValue::asJsonObject)
-                    .forEach(missingContext -> {
-                        String provider = missingContext.getString("provider");
-                        String key = missingContext.getString("key");
+            cloudManifest.getMissingContexts().forEach(missingContext -> {
+                String provider = missingContext.getProvider();
+                String key = missingContext.getKey();
 
-                        ContextProvider contextProvider = contextProviders.get(provider);
-                        if (contextProvider == null) {
-                            throw new CdkPluginException("Unable to find a context provider for '" + provider +
-                                    "'. Please consider updating the version of the plugin");
-                        }
+                ContextProvider contextProvider = contextProviders.get(provider);
+                if (contextProvider == null) {
+                    throw new CdkPluginException("Unable to find a context provider for '" + provider +
+                            "'. Please consider updating the version of the plugin");
+                }
 
-                        JsonValue contextValue;
-                        try {
-                            contextValue = contextProvider.getContextValue(missingContext.getJsonObject("props"));
-                        } catch (Exception e) {
-                            throw new CdkPluginException("An error occurred while resolving context value for the " +
-                                    "key '" + key + "' using '" + provider + "' provider: " + e.getMessage());
-                        }
-                        if (contextValue == null) {
-                            throw new CdkPluginException("Unable to resolve context value for the key '" + key +
-                                    "' using '" + provider + "' provider");
-                        }
-                        contextBuilder.add(key, contextValue);
-                    });
+                JsonObject properties = OBJECT_MAPPER.convertValue(missingContext.getProperties(), JsonObject.class);
+                JsonValue contextValue;
+                try {
+                    contextValue = contextProvider.getContextValue(properties);
+                } catch (Exception e) {
+                    throw new CdkPluginException("An error occurred while resolving context value for the " +
+                            "key '" + key + "' using '" + provider + "' provider: " + e.getMessage());
+                }
+                if (contextValue == null) {
+                    throw new CdkPluginException("Unable to resolve context value for the key '" + key +
+                            "' using '" + provider + "' provider");
+                }
+                contextBuilder.add(key, contextValue);
+            });
             context = contextBuilder.build();
-            cloudAssembly = synthesize(app, outputDirectory, environment, context);
+            cloudManifest = synthesize(app, outputDirectory, environment, context);
         }
 
         if (!context.isEmpty()) {
@@ -240,16 +235,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
         }
 
         logger.info("The cloud assembly has been successfully synthesized to {}", outputDirectory);
-        return cloudAssembly;
-    }
-
-    private JsonObject getManifest(Path cloudAssemblyDirectory) {
-        File manifestFile = cloudAssemblyDirectory.resolve("manifest.json").toFile();
-        try (JsonReader reader = Json.createReader(new BufferedReader(new FileReader(manifestFile)))) {
-            return reader.readObject();
-        } catch (FileNotFoundException e) {
-            throw new CdkPluginException("Unable to fine the manifest in the cloud assembly directory " + cloudAssemblyDirectory);
-        }
+        return cloudManifest;
     }
 
     private JsonObject readContext() {
@@ -257,9 +243,8 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
 
         JsonObject context;
         if (contextFile.exists()) {
-            try (Reader reader = new BufferedReader(new FileReader(contextFile))) {
-                JsonReader jsonReader = Json.createReader(reader);
-                context = jsonReader.readObject();
+            try {
+                context = OBJECT_MAPPER.readValue(contextFile, JsonObject.class);
             } catch (IOException e) {
                 throw new CdkPluginException("Unable to read the runtime context from the " + contextFile);
             }
@@ -270,7 +255,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
         return context;
     }
 
-    private CloudAssembly synthesize(String app, Path outputDirectory, Map<String, String> environment, JsonObject context) {
+    private CloudManifest synthesize(String app, Path outputDirectory, Map<String, String> environment, JsonObject context) {
         Map<String, String> appEnvironment;
         if (context.isEmpty()) {
             appEnvironment = environment;
@@ -296,28 +281,19 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
             throw new CdkPluginException("The synthesis has failed: the output directory doesn't exist");
         }
 
-        return new CloudAssembly(outputDirectory.toString());
-    }
-
-    private JsonValue toJson(PlexusConfiguration configuration) {
-        if (configuration.getChildCount() == 0) {
-            return Json.createValue(configuration.getValue());
+        try {
+            return CloudManifest.create(outputDirectory);
+        } catch (IOException e) {
+            throw new CdkPluginException("Failed to read the cloud manifest", e);
         }
-
-        JsonObjectBuilder objectBuilder = Json.createObjectBuilder();
-        for (PlexusConfiguration child : configuration.getChildren()) {
-            objectBuilder.add(child.getName(), toJson(child));
-        }
-
-        return objectBuilder.build();
     }
 
     private String toString(JsonObject context) {
-        StringWriter stringWriter = new StringWriter();
-        try (JsonWriter jsonWriter = Json.createWriter(stringWriter)) {
-            jsonWriter.write(context);
+        try {
+            return OBJECT_MAPPER.writeValueAsString(context);
+        } catch (JsonProcessingException e) {
+            throw new CdkPluginException("Failed to serialize the runtime context", e);
         }
-        return stringWriter.toString();
     }
 
     private List<String> buildAppExecutionCommand(String app) {

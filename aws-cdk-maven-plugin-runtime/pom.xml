@@ -9,6 +9,6 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>aws-cdk-maven-plugin-app-launcher</artifactId>
+    <artifactId>aws-cdk-maven-plugin-runtime</artifactId>
 
 </project>

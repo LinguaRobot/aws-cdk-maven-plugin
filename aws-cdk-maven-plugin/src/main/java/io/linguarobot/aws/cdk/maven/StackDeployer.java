@@ -1,14 +1,15 @@
 package io.linguarobot.aws.cdk.maven;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.hash.Hashing;
 import com.google.common.io.CharStreams;
+import io.linguarobot.aws.cdk.AssetMetadata;
+import io.linguarobot.aws.cdk.ContainerAssetData;
+import io.linguarobot.aws.cdk.ContainerImageAssetMetadata;
+import io.linguarobot.aws.cdk.FileAssetData;
+import io.linguarobot.aws.cdk.FileAssetMetadata;
+import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awscdk.cloudassembly.schema.ContainerImageAssetMetadataEntry;
-import software.amazon.awscdk.cloudassembly.schema.FileAssetMetadataEntry;
-import software.amazon.awscdk.cxapi.CloudFormationStackArtifact;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
@@ -17,22 +18,12 @@ import software.amazon.awssdk.services.cloudformation.model.Output;
 import software.amazon.awssdk.services.cloudformation.model.Parameter;
 import software.amazon.awssdk.services.cloudformation.model.Stack;
 import software.amazon.awssdk.services.cloudformation.model.StackStatus;
-import software.amazon.jsii.JsiiClient;
-import software.amazon.jsii.JsiiEngine;
-import software.amazon.jsii.JsiiObjectRef;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
-import javax.json.JsonString;
-import javax.json.JsonValue;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -41,7 +32,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,8 +79,8 @@ public class StackDeployer {
                 .build();
     }
 
-    public Stack deploy(CloudFormationStackArtifact stackArtifact) {
-        String stackName = stackArtifact.getStackName();
+    public Stack deploy(StackDefinition stackDefinition) {
+        String stackName = stackDefinition.getStackName();
         logger.info("Deploying '{}' stack", stackName);
 
         Map<String, ParameterValue> parameters = new HashMap<>();
@@ -120,30 +110,27 @@ public class StackDeployer {
                 deployedStack.parameters().forEach(p -> parameters.put(p.parameterKey(), ParameterValue.unchanged()));
             }
         }
+        stackDefinition.getParameterValues().forEach((name, value) -> parameters.put(name, ParameterValue.value(value)));
 
         List<Runnable> publishmentTasks = new ArrayList<>();
-        Map<String, ContainerImageAssetMetadataEntry> imageAssets = null;
-        for (Object asset : stackArtifact.getAssets()) {
-            JsiiEngine jsiiEngine = JsiiEngine.getInstance();
-            JsiiObjectRef objectRef = jsiiEngine.nativeToObjRef(asset);
-            JsiiClient client = jsiiEngine.getClient();
-            String id = client.getPropertyValue(objectRef, "id").asText();
-            String packaging = client.getPropertyValue(objectRef, "packaging").asText();
-            switch (packaging) {
+        for (AssetMetadata asset : stackDefinition.getAssets()) {
+            switch (asset.getPackaging()) {
                 case FILE_PACKAGING:
                 case ZIP_PACKAGING:
                     if (this.toolkit == null) {
-                        int requiredToolkitStackVersion = Optional.ofNullable(stackArtifact.getRequiresBootstrapStackVersion())
-                                .map(Number::intValue)
-                                .orElse(DEFAULT_BOOTSTRAP_STACK_VERSION);
-                        this.toolkit = bootstrap(requiredToolkitStackVersion);
+                        int toolkitStackVersion = ObjectUtils.firstNonNull(
+                                stackDefinition.getRequiredToolkitStackVersion(),
+                                DEFAULT_BOOTSTRAP_STACK_VERSION
+                        );
+                        this.toolkit = bootstrap(toolkitStackVersion);
                     }
-                    FileAssetMetadataEntry fileAsset = JsiiObjects.cast(objectRef, FileAssetMetadataEntry.class);
+                    FileAssetMetadata fileAsset = (FileAssetMetadata) asset;
                     String prefix = generatePrefix(fileAsset);
                     String filename = generateFilename(fileAsset);
-                    parameters.put(fileAsset.getS3BucketParameter(), ParameterValue.value(toolkit.getBucketName()));
-                    parameters.put(fileAsset.getS3KeyParameter(), ParameterValue.value(String.join(ASSET_PREFIX_SEPARATOR, prefix, filename)));
-                    parameters.put(fileAsset.getArtifactHashParameter(), ParameterValue.value(fileAsset.getSourceHash()));
+                    FileAssetData fileData = fileAsset.getData();
+                    parameters.put(fileData.getS3BucketParameter(), ParameterValue.value(toolkit.getBucketName()));
+                    parameters.put(fileData.getS3KeyParameter(), ParameterValue.value(String.join(ASSET_PREFIX_SEPARATOR, prefix, filename)));
+                    parameters.put(fileData.getArtifactHashParameter(), ParameterValue.value(fileAsset.getSourceHash()));
 
                     publishmentTasks.add(() -> {
                         Path file = cloudAssemblyDirectory.resolve(fileAsset.getPath());
@@ -158,40 +145,26 @@ public class StackDeployer {
                     });
                     break;
                 case "container-image":
-                    ContainerImageAssetMetadataEntry imageAsset;
-                    if (JsiiObjects.isInstanceOf(objectRef, ContainerImageAssetMetadataEntry.class)) {
-                        imageAsset = JsiiObjects.cast(objectRef, ContainerImageAssetMetadataEntry.class);
-                    } else {
-                        if (imageAssets == null) {
-                            imageAssets = loadImageAssets(stackName);
-                        }
-                        imageAsset = imageAssets.get(id);
-                        if (imageAsset == null) {
-                            throw StackDeploymentException.builder(stackName, environment)
-                                    .withCause("The metadata for the image asset " + id + " is not available")
-                                    .build();
-                        }
-                    }
+                    ContainerImageAssetMetadata imageAsset = (ContainerImageAssetMetadata) asset;
                     publishmentTasks.add(createImagePublishmentTask(stackName, imageAsset));
                     break;
                 default:
                     throw StackDeploymentException.builder(stackName, environment)
-                            .withCause("The asset packaging " + packaging + " is not supported. You might need to " +
-                                    "update the plugin in order to support the assets of this type")
+                            .withCause("The asset packaging " + asset.getPackaging() + " is not supported. You might " +
+                                    "need to update the plugin in order to support the assets of this type")
                             .build();
             }
         }
 
-        Map<String, ParameterDefinition> stackParameters = getParameterDefinitions(stackArtifact);
 
         Map<String, ParameterValue> effectiveParameters = parameters.entrySet().stream()
-                .filter(parameter -> stackParameters.containsKey(parameter.getKey()))
+                .filter(parameter -> stackDefinition.getParameters().containsKey(parameter.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        TemplateRef templateRef = getTemplateRef(stackArtifact, publishmentTasks);
+        TemplateRef templateRef = getTemplateRef(stackDefinition, publishmentTasks);
 
-        List<String> missingParameters = stackParameters.values().stream()
-                .filter(parameterDefinition -> !parameterDefinition.getDefaultValue().isPresent())
+        List<String> missingParameters = stackDefinition.getParameters().values().stream()
+                .filter(parameterDefinition -> parameterDefinition.getDefaultValue() == null)
                 .filter(parameterDefinition -> !effectiveParameters.containsKey(parameterDefinition.getName()))
                 .map(ParameterDefinition::getName)
                 .collect(Collectors.toList());
@@ -251,47 +224,7 @@ public class StackDeployer {
         return stack;
     }
 
-    private Map<String, ContainerImageAssetMetadataEntry> loadImageAssets(String stackName) {
-        final File manifestFile = cloudAssemblyDirectory.resolve("manifest.json").toFile();
-        try (JsonReader reader = Json.createReader(new BufferedReader(new FileReader(manifestFile)))) {
-            return Optional.of(reader.readObject())
-                    .map(manifest -> manifest.getJsonObject("artifacts"))
-                    .map(artifacts -> artifacts.getJsonObject(stackName))
-                    .map(stackArtifact -> stackArtifact.getJsonObject("metadata"))
-                    .map(metadata -> metadata.getJsonArray("/" + stackName))
-                    .map(stackMetadata -> stackMetadata.stream()
-                            .map(JsonValue::asJsonObject)
-                            .filter(metadata -> metadata.getString("type").equals("aws:cdk:asset"))
-                            .map(assetMetadata -> toContainerImageAssetMetadataEntry(assetMetadata.getJsonObject("data")))
-                            .collect(Collectors.toMap(ContainerImageAssetMetadataEntry::getId, Function.identity())))
-                    .orElse(Collections.emptyMap());
-        } catch (FileNotFoundException e) {
-            throw new CdkPluginException("Unable to load the manifest: " + manifestFile);
-        }
-    }
-
-    private ContainerImageAssetMetadataEntry toContainerImageAssetMetadataEntry(JsonObject data) {
-        DefaultContainerImageAssetMetadataEntry containerImageAsset = new DefaultContainerImageAssetMetadataEntry();
-        containerImageAsset.setId(data.getString("id"));
-        containerImageAsset.setPackaging(data.getString("packaging"));
-        containerImageAsset.setPath(data.getString("path"));
-        containerImageAsset.setSourceHash(data.getString("sourceHash"));
-        if (data.containsKey("buildArgs")) {
-            Map<String, String> buildArgs = data.getJsonObject("buildArgs").entrySet().stream()
-                    .filter(arg -> arg.getValue().getValueType() == JsonValue.ValueType.STRING)
-                    .map(arg -> Maps.immutableEntry(arg.getKey(),((JsonString) arg.getValue()).getString()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-            containerImageAsset.setBuildArgs(buildArgs);
-        }
-        containerImageAsset.setFile(data.getString("file", null));
-        containerImageAsset.setImageNameParameter(data.getString("imageNameParameter", null));
-        containerImageAsset.setImageTag(data.getString("imageTag", null));
-        containerImageAsset.setRepositoryName(data.getString("repositoryName", null));
-        containerImageAsset.setTarget(data.getString("target", null));
-        return containerImageAsset;
-    }
-
-    private Runnable createImagePublishmentTask(String stackName, ContainerImageAssetMetadataEntry imageAsset) {
+    private Runnable createImagePublishmentTask(String stackName, ContainerImageAssetMetadata imageAsset) {
         Path contextDirectory = cloudAssemblyDirectory.resolve(imageAsset.getPath());
         if (!Files.exists(contextDirectory)) {
             throw StackDeploymentException.builder(stackName, environment)
@@ -300,8 +233,9 @@ public class StackDeployer {
         }
 
         Path dockerfilePath;
-        if (imageAsset.getFile() != null) {
-            dockerfilePath = contextDirectory.resolve(imageAsset.getFile());
+        ContainerAssetData imageData = imageAsset.getData();
+        if (imageData.getFile() != null) {
+            dockerfilePath = contextDirectory.resolve(imageData.getFile());
             if (!Files.exists(dockerfilePath)) {
                 throw StackDeploymentException.builder(stackName, environment)
                         .withCause("The Dockerfile doesn't exist: " + dockerfilePath)
@@ -316,9 +250,14 @@ public class StackDeployer {
 
         return () -> {
             String localTag = String.join("-", "cdkasset", imageAsset.getId().toLowerCase());
-            Map<String, String> arguments = imageAsset.getBuildArgs() != null ? imageAsset.getBuildArgs() : ImmutableMap.of();
-            ImageBuild imageBuild = new ImageBuild(contextDirectory, dockerfilePath, localTag, arguments, imageAsset.getTarget());
-            dockerImagePublisher.publish(imageAsset.getRepositoryName(), imageAsset.getImageTag(), imageBuild);
+            ImageBuild imageBuild = ImageBuild.builder()
+                    .withContextDirectory(contextDirectory)
+                    .withDockerfile(dockerfilePath)
+                    .withImageTag(localTag)
+                    .withArguments(imageData.getBuildArguments())
+                    .withTarget(imageData.getTarget())
+                    .build();
+            dockerImagePublisher.publish(imageData.getRepositoryName(), imageData.getImageTag(), imageBuild);
         };
     }
 
@@ -331,16 +270,15 @@ public class StackDeployer {
         return Optional.of(dockerfile).filter(Files::exists);
     }
 
-    private TemplateRef getTemplateRef(CloudFormationStackArtifact stackArtifact, List<Runnable> deploymentTasks) {
-        String stackName = stackArtifact.getStackName();
-        Path templateFile = cloudAssemblyDirectory.resolve(stackArtifact.getTemplateFile());
+    private TemplateRef getTemplateRef(StackDefinition stackDefinition, List<Runnable> deploymentTasks) {
+        Path templateFile = cloudAssemblyDirectory.resolve(stackDefinition.getTemplateFile());
         TemplateRef templateRef;
         try {
             templateRef = readTemplateBody(templateFile, MAX_TEMPLATE_SIZE)
                     .map(TemplateRef::fromString)
                     .orElse(null);
         } catch (IOException e) {
-            throw StackDeploymentException.builder(stackName, environment)
+            throw StackDeploymentException.builder(stackDefinition.getStackName(), environment)
                     .withCause("Unable to read the template file: " + templateFile)
                     .withCause(e)
                     .build();
@@ -354,18 +292,18 @@ public class StackDeployer {
             try {
                 contentHash = hash(templateFile.toFile());
             } catch (IOException e) {
-                throw StackDeploymentException.builder(stackName, environment)
+                throw StackDeploymentException.builder(stackDefinition.getStackName(), environment)
                         .withCause("Unable to read the template file: " + templateFile)
                         .withCause(e)
                         .build();
             }
 
-            String objectName = "cdk/" + stackName + "/" + contentHash + ".json";
+            String objectName = "cdk/" + stackDefinition.getStackName() + "/" + contentHash + ".json";
             deploymentTasks.add(() -> {
                 try {
                     fileAssetPublisher.publish(templateFile, objectName, toolkit.getBucketName());
                 } catch (IOException e) {
-                    throw StackDeploymentException.builder(stackName, environment)
+                    throw StackDeploymentException.builder(stackDefinition.getStackName(), environment)
                             .withCause("An error occurred while uploading the template file to the deployment bucket")
                             .withCause(e)
                             .build();
@@ -378,15 +316,14 @@ public class StackDeployer {
         return templateRef;
     }
 
-    public Optional<Stack> destroy(CloudFormationStackArtifact stackArtifact) {
-        String stackName = stackArtifact.getStackName();
-        Stack stack = Stacks.findStack(client, stackName).orElse(null);
+    public Optional<Stack> destroy(StackDefinition stackDefinition) {
+        Stack stack = Stacks.findStack(client, stackDefinition.getStackName()).orElse(null);
         if (stack != null && stack.stackStatus() != StackStatus.DELETE_COMPLETE) {
-            logger.info("Destroying '{}' stack", stackName);
+            logger.info("Destroying '{}' stack", stackDefinition.getStackName());
             stack = Stacks.deleteStack(client, stack.stackId());
         } else {
             logger.warn("The generated template for the stack '{}' doesn't have any resources defined. The deployment " +
-                    "will be skipped", stackName);
+                    "will be skipped", stackDefinition.getStackName());
         }
 
         return Optional.ofNullable(stack);
@@ -396,7 +333,7 @@ public class StackDeployer {
         return com.google.common.io.Files.asByteSource(file).hash(Hashing.sha256()).toString();
     }
 
-    private String generateFilename(FileAssetMetadataEntry fileAsset) {
+    private String generateFilename(FileAssetMetadata fileAsset) {
         StringBuilder fileName = new StringBuilder();
         fileName.append(fileAsset.getSourceHash());
         if (fileAsset.getPackaging().equals(ZIP_PACKAGING)) {
@@ -411,7 +348,7 @@ public class StackDeployer {
         return fileName.toString();
     }
 
-    private String generatePrefix(FileAssetMetadataEntry fileAsset) {
+    private String generatePrefix(FileAssetMetadata fileAsset) {
         StringBuilder prefix = new StringBuilder();
         prefix.append("assets").append('/');
         if (!fileAsset.getId().equals(fileAsset.getSourceHash())) {
@@ -419,21 +356,6 @@ public class StackDeployer {
         }
 
         return prefix.toString();
-    }
-
-    private Map<String, ParameterDefinition> getParameterDefinitions(CloudFormationStackArtifact stackArtifact) {
-        Map<String, Map<String, Object>> parameters = Optional.of(stackArtifact)
-                .map(artifact -> (Map<String, Object>) artifact.getTemplate())
-                .map(template -> (Map<String, Map<String, Object>>) template.get("Parameters"))
-                .orElse(Collections.emptyMap());
-
-        return parameters.entrySet().stream()
-                .map(parameter -> {
-                    String name = parameter.getKey();
-                    String defaultValue = (String) parameter.getValue().get("Default");
-                    return new ParameterDefinition(name, defaultValue);
-                })
-                .collect(Collectors.toMap(ParameterDefinition::getName, Function.identity()));
     }
 
     private Optional<String> readTemplateBody(Path template, long limit) throws IOException {

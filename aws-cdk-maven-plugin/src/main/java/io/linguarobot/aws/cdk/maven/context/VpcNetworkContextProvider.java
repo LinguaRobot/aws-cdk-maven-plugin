@@ -14,8 +14,6 @@ import io.linguarobot.aws.cdk.maven.CdkPluginException;
 import io.linguarobot.aws.cdk.maven.MoreCollectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import software.amazon.awscdk.cxapi.Environment;
-import software.amazon.awscdk.cxapi.VpcContextResponse;
 import software.amazon.awscdk.cxapi.VpcSubnet;
 import software.amazon.awscdk.cxapi.VpcSubnetGroup;
 import software.amazon.awscdk.cxapi.VpcSubnetGroupType;
@@ -75,10 +73,10 @@ public class VpcNetworkContextProvider implements ContextProvider {
 
     @Override
     public JsonValue getContextValue(JsonObject properties) {
-        Environment environment = ContextProviders.buildEnvironment(properties);
+        String environment = ContextProviders.buildEnvironment(properties);
         try (Ec2Client ec2Client = awsClientProvider.getClient(Ec2Client.class, environment)) {
             Vpc vpc = getVpc(ec2Client, getFilters(properties));
-            VpcContextResponse vpcContext = getVpcContext(ec2Client, vpc, properties);
+            VpcContext vpcContext = getVpcContext(ec2Client, vpc, properties);
             return OBJECT_MAPPER.convertValue(vpcContext, JsonObject.class);
         }
     }
@@ -100,8 +98,8 @@ public class VpcNetworkContextProvider implements ContextProvider {
         return vpcs.get(0);
     }
 
-    private VpcContextResponse getVpcContext(Ec2Client ec2Client, Vpc vpc, JsonObject properties) {
-        VpcContextResponse.Builder contextBuilder = VpcContextResponse.builder()
+    private VpcContext getVpcContext(Ec2Client ec2Client, Vpc vpc, JsonObject properties) {
+        VpcContext.Builder contextBuilder = VpcContext.builder()
                 .vpcId(vpc.vpcId())
                 .vpcCidrBlock(vpc.cidrBlock())
                 .vpnGatewayId(getVpnGateway(ec2Client, vpc).map(VpnGateway::vpnGatewayId).orElse(null));
@@ -132,7 +130,7 @@ public class VpcNetworkContextProvider implements ContextProvider {
                                             .map(this::toVpcSubnet)
                                             .collect(Collectors.toList());
 
-                                    return VpcSubnetGroup.builder()
+                                    return VpcContextSubnetGroup.builder()
                                             .name(nameGroupedSubnets.getKey())
                                             .type(type)
                                             .subnets(subnets)
@@ -188,7 +186,7 @@ public class VpcNetworkContextProvider implements ContextProvider {
     }
 
     private VpcSubnet toVpcSubnet(Subnet subnet) {
-        return VpcSubnet.builder()
+        return VpcContextSubnet.builder()
                 .subnetId(subnet.getId())
                 .availabilityZone(subnet.getAvailabilityZone())
                 .cidr(subnet.getCidrBlock())
@@ -315,10 +313,6 @@ public class VpcNetworkContextProvider implements ContextProvider {
                 .name(name)
                 .values(values)
                 .build();
-    }
-
-    private <T> Stream<T> getStream(T value) {
-        return value != null ? Stream.of(value) : Stream.empty();
     }
 
     private <T> Stream<T> getStream(List<T> values) {
