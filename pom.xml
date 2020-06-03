@@ -14,6 +14,7 @@
         <module>aws-cdk-maven-plugin-api</module>
         <module>aws-cdk-maven-plugin</module>
         <module>aws-cdk-maven-plugin-runtime</module>
+        <module>aws-cdk-cloud-manifest</module>
     </modules>
 
     <properties>
@@ -42,6 +43,11 @@
             <dependency>
                 <groupId>io.linguarobot</groupId>
                 <artifactId>aws-cdk-maven-plugin-app-launcher</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.linguarobot</groupId>
+                <artifactId>aws-cdk-cloud-manifest</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
