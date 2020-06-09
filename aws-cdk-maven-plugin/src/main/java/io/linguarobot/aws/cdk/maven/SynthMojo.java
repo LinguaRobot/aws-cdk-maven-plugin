@@ -13,13 +13,7 @@ import io.linguarobot.aws.cdk.maven.context.ContextProvider;
 import io.linguarobot.aws.cdk.maven.context.HostedZoneContextProvider;
 import io.linguarobot.aws.cdk.maven.context.SsmContextProvider;
 import io.linguarobot.aws.cdk.maven.context.VpcNetworkContextProvider;
-import io.linguarobot.aws.cdk.maven.node.DefaultUnixNodeInstaller;
-import io.linguarobot.aws.cdk.maven.node.LinuxNodeInstaller;
-import io.linguarobot.aws.cdk.maven.node.NodeClient;
-import io.linguarobot.aws.cdk.maven.node.NodeInstallationException;
-import io.linguarobot.aws.cdk.maven.node.NodeInstaller;
-import io.linguarobot.aws.cdk.maven.node.NodeVersion;
-import io.linguarobot.aws.cdk.maven.node.WindowsNodeInstaller;
+import io.linguarobot.aws.cdk.maven.node.*;
 import io.linguarobot.aws.cdk.maven.process.DefaultProcessRunner;
 import io.linguarobot.aws.cdk.maven.process.ProcessContext;
 import io.linguarobot.aws.cdk.maven.process.ProcessExecutionException;
@@ -327,13 +321,13 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
         if (osName.startsWith("Windows")) {
             nodeInstaller = new WindowsNodeInstaller(processRunner, localRepositoryDirectory);
         } else if (osName.startsWith("Mac")) {
-            nodeInstaller = new DefaultUnixNodeInstaller(processRunner, localRepositoryDirectory, "darwin", "x64");
+            nodeInstaller = new UnixNodeInstaller(processRunner, localRepositoryDirectory, "darwin", "x64");
         } else if (osName.startsWith("SunOS")) {
-            nodeInstaller = new DefaultUnixNodeInstaller(processRunner, localRepositoryDirectory, "sunos", "x64");
+            nodeInstaller = new UnixNodeInstaller(processRunner, localRepositoryDirectory, "sunos", "x64");
         } else if (osName.startsWith("Linux") || osName.startsWith("LINUX")) {
             nodeInstaller = new LinuxNodeInstaller(processRunner, localRepositoryDirectory);
         } else if (osName.startsWith("AIX")) {
-            nodeInstaller = new DefaultUnixNodeInstaller(processRunner, localRepositoryDirectory, "aix", "ppc64");
+            nodeInstaller = new UnixNodeInstaller(processRunner, localRepositoryDirectory, "aix", "ppc64");
         } else {
             throw new NodeInstallationException("The platform is not supported: " + osName);
         }

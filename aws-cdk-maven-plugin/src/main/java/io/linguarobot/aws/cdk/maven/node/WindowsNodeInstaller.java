@@ -20,58 +20,47 @@ import java.util.zip.ZipInputStream;
 /**
  * Node.js installer for Windows.
  */
-public class WindowsNodeInstaller implements NodeInstaller {
+public class WindowsNodeInstaller extends AbstractNodeInstaller {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsNodeInstaller.class);
 
     private final ProcessRunner processRunner;
-    private final Path localRepositoryPath;
 
     public WindowsNodeInstaller(ProcessRunner processRunner, Path localRepositoryPath) {
+        super(localRepositoryPath, "win", System.getenv("ProgramFiles(x86)") != null ? "x64" : "x86");
         this.processRunner = processRunner;
-        this.localRepositoryPath = localRepositoryPath;
     }
 
     @Override
-    public NodeClient install(NodeVersion version) {
-        String arch = System.getenv("ProgramFiles(x86)") != null ? "x64" : "x86";
-        String artifactName = String.join("-", "node", "win", arch);
-        Path homeDirectory = localRepositoryPath.resolve(Paths.get("io", "linguarobot", artifactName, version.toString()));
-        if (!Files.exists(homeDirectory) || !Files.exists(homeDirectory.resolve("node.exe"))) {
-            logger.info("Node.js {} wasn't found in the local Maven repository. Installing Node.js {}", version, version);
-            try {
-                Files.createDirectories(homeDirectory);
-            } catch (IOException e) {
-                throw new NodeInstallationException("Failed to create directory structure for Node.js in the local Maven " +
-                        "repository");
-            }
-            String filename = String.join("-", "node", version.toString(), "win", arch) + ".zip";
-            String downloadUrl = String.join("/", BASE_DOWNLOAD_URL, "dist", version.toString(), filename);
-            logger.info("Downloading Node.js {} from {}", version, downloadUrl);
-            try (
-                    BufferedInputStream in = new BufferedInputStream(new URL(downloadUrl).openStream());
-                    ZipInputStream zipInputStream = new ZipInputStream(in);
-            ) {
-                ZipEntry zipEntry;
-                while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                    Path entryPath = Paths.get(zipEntry.getName());
-                    if (entryPath.getNameCount() > 1) {
-                        Path path = homeDirectory.resolve(entryPath.subpath(1, entryPath.getNameCount()));
-                        if (zipEntry.isDirectory()) {
-                            Files.createDirectory(path);
-                        } else {
-                            try (OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(path.toFile()))) {
-                                IOUtils.copy(zipInputStream, outputStream);
-                            }
+    protected void download(NodeVersion version, String os, String arch, Path destination) {
+        String filename = String.join("-", "node", version.toString(), "win", arch) + ".zip";
+        String downloadUrl = String.join("/", BASE_DOWNLOAD_URL, "dist", version.toString(), filename);
+        logger.info("Downloading Node.js {} from {}", version, downloadUrl);
+        try (
+                BufferedInputStream in = new BufferedInputStream(new URL(downloadUrl).openStream());
+                ZipInputStream zipInputStream = new ZipInputStream(in);
+        ) {
+            ZipEntry zipEntry;
+            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                Path entryPath = Paths.get(zipEntry.getName());
+                if (entryPath.getNameCount() > 1) {
+                    Path path = destination.resolve(entryPath.subpath(1, entryPath.getNameCount()));
+                    if (zipEntry.isDirectory()) {
+                        Files.createDirectory(path);
+                    } else {
+                        try (OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(path.toFile()))) {
+                            IOUtils.copy(zipInputStream, outputStream);
                         }
                     }
                 }
-            } catch (IOException e) {
-                throw new NodeInstallationException(e);
             }
+        } catch (IOException e) {
+            throw new NodeInstallationException(e);
         }
-        logger.info("The Node.js {} has been successfully installed in {}", version, homeDirectory);
+    }
 
+    @Override
+    protected NodeProcessRunner toNodeProcessRunner(Path homeDirectory) {
         Path node = homeDirectory.resolve("node.exe");
         Path npmBinDirectory = homeDirectory.resolve("node_modules/npm/bin");
         Path npmCli = npmBinDirectory.resolve("npm-cli.js");
