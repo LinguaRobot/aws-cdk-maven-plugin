@@ -4,14 +4,16 @@ import io.linguarobot.aws.cdk.maven.process.ProcessRunner;
 
 import java.nio.file.Path;
 
-public class LinuxNodeInstaller extends AbstractUnixNodeInstaller {
+/**
+ * Node.js installer for Linux.
+ */
+public class LinuxNodeInstaller extends UnixNodeInstaller {
 
     public LinuxNodeInstaller(ProcessRunner processRunner, Path localRepositoryPath) {
-        super(processRunner, localRepositoryPath);
+        super(processRunner, localRepositoryPath, "linux", getArch());
     }
 
-    @Override
-    protected String getArch() {
+    private static String getArch() {
         String arch = System.getProperty("os.arch");
         if (arch.equals("arm")) {
             String osVersion = System.getProperty("os.version");
@@ -31,11 +33,6 @@ public class LinuxNodeInstaller extends AbstractUnixNodeInstaller {
         }
 
         return arch;
-    }
-
-    @Override
-    protected String getOperationSystemName() {
-        return "linux";
     }
 
 }
