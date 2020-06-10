@@ -5,6 +5,21 @@ on:
     types: [integration-test-command]
 
 jobs:
+  post_comment:
+    name: 'Publish Status Link'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Create a link to the run'
+        id: vars
+        run: echo ::set-output name=run-url::https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+      - name: 'Post a comment with the status link'
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+          issue-number: ${{ github.event.client_payload.github.payload.issue.number }}
+          body: |
+            Integration tests have been started. Please click [here](${{ steps.vars.outputs.run-url }}) to see the status.
   integration_test:
     name: 'Integration Test'
     strategy:
@@ -20,17 +35,6 @@ jobs:
             test: '*/pom.xml,!synth-deploy-ecs-service/pom.xml'
     runs-on: ${{ matrix.os }}
     steps:
-      - name: 'Create a link to the run'
-        id: vars
-        run: echo ::set-output name=run-url::https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-      - name: 'Post a comment'
-        uses: peter-evans/create-or-update-comment@v1
-        with:
-          token: ${{ secrets.REPO_ACCESS_TOKEN }}
-          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
-          issue-number: ${{ github.event.client_payload.github.payload.issue.number }}
-          body: |
-            Integration tests have been started. Please click [here](${{ steps.vars.outputs.run-url }}) to see current status.
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
