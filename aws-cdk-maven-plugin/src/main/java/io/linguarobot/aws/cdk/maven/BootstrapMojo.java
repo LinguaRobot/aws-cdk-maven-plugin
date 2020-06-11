@@ -34,10 +34,10 @@ public class BootstrapMojo extends AbstractCdkMojo {
     private static final String BOOTSTRAP_VERSION_OUTPUT = "BootstrapVersion";
 
     /**
-     * Toolkit stack configuration.
+     * The name of the CDK toolkit stack.
      */
-    @Parameter(defaultValue = "${toolkit}")
-    private ToolkitConfiguration toolkit;
+    @Parameter(defaultValue = "CDKToolkit")
+    private String toolkitStackName;
 
     @Override
     public void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
@@ -61,7 +61,7 @@ public class BootstrapMojo extends AbstractCdkMojo {
         environments.forEach((environment, version) -> {
             ResolvedEnvironment resolvedEnvironment = environmentResolver.resolve(environment);
             if (version > MAX_TOOLKIT_STACK_VERSION) {
-                throw BootstrapException.deploymentError(toolkit.getStackName(), resolvedEnvironment)
+                throw BootstrapException.deploymentError(toolkitStackName, resolvedEnvironment)
                         .withCause("One of the stacks requires toolkit stack version " + version + " which is not " +
                                 "supported by the plugin. Please try to update the plugin version in order to fix the problem")
                         .build();
@@ -95,23 +95,22 @@ public class BootstrapMojo extends AbstractCdkMojo {
                 .region(environment.getRegion())
                 .credentialsProvider(environment.getCredentialsProvider())
                 .build();
-        String stackName = toolkit.getStackName();
 
-        Stack toolkitStack = Stacks.findStack(client, stackName).orElse(null);
+        Stack toolkitStack = Stacks.findStack(client, toolkitStackName).orElse(null);
         if (toolkitStack != null) {
             if (Stacks.isInProgress(toolkitStack)) {
                 logger.info("Waiting until toolkit stack reaches stable state, environment={}, stackName={}",
-                        environment, stackName);
+                        environment, toolkitStackName);
                 toolkitStack = awaitCompletion(client, toolkitStack);
             }
             if (toolkitStack.stackStatus() == StackStatus.ROLLBACK_COMPLETE || toolkitStack.stackStatus() == StackStatus.ROLLBACK_FAILED) {
                 logger.warn("The toolkit stack is in {} state. The stack will be deleted and a new one will be" +
-                        " created, environment={}, stackName={}", StackStatus.ROLLBACK_COMPLETE, environment, stackName);
+                        " created, environment={}, stackName={}", StackStatus.ROLLBACK_COMPLETE, environment, toolkitStackName);
                 toolkitStack = awaitCompletion(client, Stacks.deleteStack(client, toolkitStack.stackId()));
 
             }
             if (Stacks.isFailed(toolkitStack)) {
-                throw BootstrapException.deploymentError(stackName, environment)
+                throw BootstrapException.deploymentError(toolkitStackName, environment)
                         .withCause("The toolkit stack is in failed state: " + toolkitStack.stackStatus())
                         .build();
             }
@@ -128,7 +127,7 @@ public class BootstrapMojo extends AbstractCdkMojo {
                 .orElse(version);
 
         if (toolkitStackVersion > MAX_TOOLKIT_STACK_VERSION) {
-            throw BootstrapException.invalidStateError(stackName, environment)
+            throw BootstrapException.invalidStateError(toolkitStackName, environment)
                     .withCause("The deployed toolkit stack version is newer than the latest supported by the plugin." +
                             " Please try to update the plugin version in order to fix the problem")
                     .build();
@@ -138,12 +137,12 @@ public class BootstrapMojo extends AbstractCdkMojo {
             TemplateRef toolkitTemplate;
             try {
                 toolkitTemplate = getToolkitTemplateRef(version)
-                        .orElseThrow(() -> BootstrapException.deploymentError(stackName, environment)
+                        .orElseThrow(() -> BootstrapException.deploymentError(toolkitStackName, environment)
                                 .withCause("The required bootstrap stack version " + version + " is not supported by " +
                                         "the plugin. Please try to update the plugin version in order to fix the problem")
                                 .build());
             } catch (IOException e) {
-                throw BootstrapException.deploymentError(stackName, environment)
+                throw BootstrapException.deploymentError(toolkitStackName, environment)
                         .withCause("Unable to load a template for the toolkit stack")
                         .withCause(e)
                         .build();
@@ -151,25 +150,25 @@ public class BootstrapMojo extends AbstractCdkMojo {
 
             if (toolkitStack != null && toolkitStack.stackStatus() != StackStatus.DELETE_COMPLETE) {
                 logger.info("Deploying a newer version of the toolkit stack (updating from {} to {}), environment={}, " +
-                        "stackName={}", toolkitStackVersion, version, environment, stackName);
+                        "stackName={}", toolkitStackVersion, version, environment, toolkitStackName);
                 // TODO: consider the case when some of the parameters may be removed in the newer version
                 Map<String, ParameterValue> parameters = Stream.of(toolkitStack)
                         .filter(Stack::hasParameters)
                         .flatMap(s -> s.parameters().stream())
                         .collect(Collectors.toMap(software.amazon.awssdk.services.cloudformation.model.Parameter::parameterKey, p -> ParameterValue.unchanged()));
-                toolkitStack = Stacks.updateStack(client, stackName, toolkitTemplate, parameters);
+                toolkitStack = Stacks.updateStack(client, toolkitStackName, toolkitTemplate, parameters);
             } else {
                 logger.info("The toolkit stack doesn't exist. Deploying a new one, environment={}, stackName={}",
-                        environment, stackName);
-                toolkitStack = Stacks.createStack(client, stackName, toolkitTemplate);
+                        environment, toolkitStackName);
+                toolkitStack = Stacks.createStack(client, toolkitStackName, toolkitTemplate);
             }
 
             logger.info("Waiting until the toolkit stack reaches stable state, environment={}, stackName={}",
-                    environment, stackName);
+                    environment, toolkitStackName);
             toolkitStack = awaitCompletion(client, toolkitStack);
 
             if (toolkitStack.stackStatus() != StackStatus.CREATE_COMPLETE && toolkitStack.stackStatus() != StackStatus.UPDATE_COMPLETE) {
-                throw BootstrapException.deploymentError(stackName, environment)
+                throw BootstrapException.deploymentError(toolkitStackName, environment)
                         .withCause("The stack didn't reach stable state: " + toolkitStack.stackStatus())
                         .build();
             }

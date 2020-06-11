@@ -5,13 +5,10 @@ package io.linguarobot.aws.cdk.maven;
  */
 public class ToolkitConfiguration {
 
-    /**
-     * The name of the toolkit stack.
-     */
-    private String stackName;
+    private final String stackName;
 
-    public ToolkitConfiguration() {
-        this.stackName = "CDKToolkit";
+    public ToolkitConfiguration(String stackName) {
+        this.stackName = stackName;
     }
 
     public String getStackName() {
