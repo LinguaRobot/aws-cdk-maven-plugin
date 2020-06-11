@@ -40,7 +40,7 @@ public class BootstrapMojo extends AbstractCdkMojo {
     private ToolkitConfiguration toolkit;
 
     @Override
-    public void execute(String app, Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
+    public void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
         if (!Files.exists(cloudAssemblyDirectory)) {
             throw new CdkPluginException("The cloud assembly directory " + cloudAssemblyDirectory + " doesn't exist. " +
                     "Did you forget to add 'synth' goal to the execution?");

@@ -114,11 +114,20 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
     @Parameter(defaultValue = "${settings.localRepository}", readonly = true)
     private File localRepositoryDirectory;
 
+    /**
+     * The name of the application class defining your cloud infrastructure. The application class must either extend
+     * {@link software.amazon.awscdk.core.App} or define a main method which would create an instance of {@code App},
+     * define the constructs associated with it and call {@link software.amazon.awscdk.core.App#synth()} method in order
+     * to produce a cloud assembly with CloudFormation templates.
+     */
+    @Parameter(required = true)
+    private String app;
+
     private ProcessRunner processRunner;
     private Map<String, ContextProvider> contextProviders;
 
     @Override
-    public void execute(String app, Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
+    public void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
         this.processRunner = new DefaultProcessRunner(project.getBasedir());
         this.contextProviders = initContextProviders(environmentResolver);
         synthesize(app, cloudAssemblyDirectory, environmentResolver);

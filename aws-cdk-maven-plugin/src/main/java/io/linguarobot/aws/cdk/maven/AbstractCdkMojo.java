@@ -39,15 +39,6 @@ public abstract class AbstractCdkMojo extends AbstractMojo {
             .registerModule(new JSR353Module());
 
     /**
-     * The name of the application class defining your cloud infrastructure. The application class must either extend
-     * {@link software.amazon.awscdk.core.App} or define a main method which would create an instance of {@code App},
-     * define the constructs associated with it and call {@link software.amazon.awscdk.core.App#synth()} method in order
-     * to produce a cloud assembly with CloudFormation templates.
-     */
-    @Parameter(required = true)
-    private String app;
-
-    /**
      * A profile that will be used while looking for credentials and region.
      */
     @Parameter
@@ -62,7 +53,7 @@ public abstract class AbstractCdkMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException {
         try {
-            execute(app, cloudAssemblyDirectory.toPath(), createEnvironmentResolver());
+            execute(cloudAssemblyDirectory.toPath(), createEnvironmentResolver());
         } catch (CdkPluginException e) {
             throw new MojoExecutionException(e.getMessage(), e.getCause());
         } catch (Exception e) {
@@ -70,7 +61,7 @@ public abstract class AbstractCdkMojo extends AbstractMojo {
         }
     }
 
-    public abstract void execute(String app, Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver);
+    public abstract void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver);
 
     /**
      * Creates an {@code EnvironmentResolved} based on the default region and credentials.
