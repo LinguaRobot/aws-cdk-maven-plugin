@@ -23,10 +23,10 @@ public class DeployMojo extends AbstractCdkMojo {
     private MavenProject project;
 
     /**
-     * Toolkit stack configuration.
+     * The name of the CDK toolkit stack
      */
-    @Parameter(defaultValue = "${toolkit}")
-    private ToolkitConfiguration toolkit;
+    @Parameter(defaultValue = "CDKToolkit")
+    private String toolkitStackName;
 
     @Override
     public void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
@@ -43,8 +43,9 @@ public class DeployMojo extends AbstractCdkMojo {
             ResolvedEnvironment resolvedEnvironment = environmentResolver.resolve(environment);
             DockerImageAssetPublisher dockerImagePublisher = new DockerImageAssetPublisher(resolvedEnvironment, processRunner);
             FileAssetPublisher filePublisher = new FileAssetPublisher(resolvedEnvironment);
-            StackDeployer stackDeployer = new StackDeployer(cloudAssemblyDirectory, resolvedEnvironment, toolkit,
-                    filePublisher, dockerImagePublisher);
+            ToolkitConfiguration toolkitConfiguration = new ToolkitConfiguration(toolkitStackName);
+            StackDeployer stackDeployer = new StackDeployer(cloudAssemblyDirectory, resolvedEnvironment,
+                    toolkitConfiguration, filePublisher, dockerImagePublisher);
             environmentStacks.forEach(stack -> {
                 if (!stack.getResources().isEmpty()) {
                     stackDeployer.deploy(stack);

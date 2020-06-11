@@ -50,9 +50,7 @@
                         </goals>
                         <configuration>
                             <app>io.linguarobot.aws.cdk.maven.it.DeployBasicTestApp</app>
-                            <toolkit>
-                                <stackName>basic-it-cdk-toolkit</stackName>
-                            </toolkit>
+                            <toolkitStackName>basic-it-cdk-toolkit</toolkitStackName>
                         </configuration>
                     </execution>
                 </executions>

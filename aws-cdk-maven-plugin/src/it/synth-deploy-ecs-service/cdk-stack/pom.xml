@@ -68,9 +68,7 @@
                         </goals>
                         <configuration>
                             <app>io.linguarobot.aws.cdk.maven.it.EcsServiceTestApp</app>
-                            <toolkit>
-                                <stackName>ecs-service-it-cdk-toolkit</stackName>
-                            </toolkit>
+                            <toolkitStackName>ecs-service-it-cdk-toolkit</toolkitStackName>
                         </configuration>
                     </execution>
                 </executions>
