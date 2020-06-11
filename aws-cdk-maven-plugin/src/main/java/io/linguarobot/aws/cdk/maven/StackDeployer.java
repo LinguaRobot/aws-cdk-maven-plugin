@@ -1,13 +1,11 @@
 package io.linguarobot.aws.cdk.maven;
 
 import com.google.common.hash.Hashing;
-import com.google.common.io.CharStreams;
 import io.linguarobot.aws.cdk.AssetMetadata;
 import io.linguarobot.aws.cdk.ContainerAssetData;
 import io.linguarobot.aws.cdk.ContainerImageAssetMetadata;
 import io.linguarobot.aws.cdk.FileAssetData;
 import io.linguarobot.aws.cdk.FileAssetMetadata;
-import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -15,19 +13,15 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.CloudFormationException;
 import software.amazon.awssdk.services.cloudformation.model.Output;
-import software.amazon.awssdk.services.cloudformation.model.Parameter;
 import software.amazon.awssdk.services.cloudformation.model.Stack;
 import software.amazon.awssdk.services.cloudformation.model.StackStatus;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,9 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class StackDeployer {
 
@@ -47,12 +39,11 @@ public class StackDeployer {
     private static final String BOOTSTRAP_VERSION_OUTPUT = "BootstrapVersion";
     private static final String BUCKET_NAME_OUTPUT = "BucketName";
     private static final String BUCKET_DOMAIN_NAME_OUTPUT = "BucketDomainName";
-    private static final int MAX_TOOLKIT_STACK_VERSION = 1;
     private static final String ASSET_PREFIX_SEPARATOR = "||";
     private static final String ZIP_PACKAGING = "zip";
     private static final String FILE_PACKAGING = "file";
+    private static final String IMAGE_PACKAGING = "container-image";
     private static final int MAX_TEMPLATE_SIZE = 50 * 1024;
-    private static final int DEFAULT_BOOTSTRAP_STACK_VERSION = getDefaultBootstrapStackVersion();
 
     private final CloudFormationClient client;
     private final Path cloudAssemblyDirectory;
@@ -60,8 +51,6 @@ public class StackDeployer {
     private final ToolkitConfiguration toolkitConfiguration;
     private final FileAssetPublisher fileAssetPublisher;
     private final DockerImageAssetPublisher dockerImagePublisher;
-
-    private Toolkit toolkit;
 
     public StackDeployer(Path cloudAssemblyDirectory,
                          ResolvedEnvironment environment,
@@ -86,45 +75,36 @@ public class StackDeployer {
         Map<String, ParameterValue> parameters = new HashMap<>();
         Stack deployedStack = Stacks.findStack(client, stackName).orElse(null);
         if (deployedStack != null) {
-            if (deployedStack.stackStatus() == StackStatus.ROLLBACK_IN_PROGRESS) {
-                logger.info("Waiting until rollback operation on the stack '{}' is completed after unsuccessful " +
-                        "creation", deployedStack.stackName());
+            if (Stacks.isInProgress(deployedStack)) {
+                logger.info("Waiting until stack '{}' reaches stable state", deployedStack.stackName());
                 deployedStack = awaitCompletion(deployedStack);
             }
             if (deployedStack.stackStatus() == StackStatus.ROLLBACK_COMPLETE || deployedStack.stackStatus() == StackStatus.ROLLBACK_FAILED) {
                 logger.warn("The stack '{}' is in {} state after unsuccessful creation. The stack will be deleted " +
                         "and re-created.", stackName, deployedStack.stackStatus());
-                deployedStack = Stacks.deleteStack(client, deployedStack.stackName());
-            }
-            if (Stacks.isInProgress(deployedStack)) {
-                logger.info("Waiting until stack '{}' reaches stable state", deployedStack.stackName());
-                deployedStack = awaitCompletion(deployedStack);
+                deployedStack = Stacks.awaitCompletion(client, Stacks.deleteStack(client, deployedStack.stackName()));
             }
             if (Stacks.isFailed(deployedStack)) {
                 throw StackDeploymentException.builder(stackName, environment)
                         .withCause("The stack '" + stackName + "' is in the failed state " + deployedStack.stackStatus())
                         .build();
             }
-
             if (deployedStack.stackStatus() != StackStatus.DELETE_COMPLETE) {
                 deployedStack.parameters().forEach(p -> parameters.put(p.parameterKey(), ParameterValue.unchanged()));
             }
         }
         stackDefinition.getParameterValues().forEach((name, value) -> parameters.put(name, ParameterValue.value(value)));
-
+        Toolkit toolkit = null;
         List<Runnable> publishmentTasks = new ArrayList<>();
         for (AssetMetadata asset : stackDefinition.getAssets()) {
             switch (asset.getPackaging()) {
                 case FILE_PACKAGING:
                 case ZIP_PACKAGING:
-                    if (this.toolkit == null) {
-                        int toolkitStackVersion = ObjectUtils.firstNonNull(
-                                stackDefinition.getRequiredToolkitStackVersion(),
-                                DEFAULT_BOOTSTRAP_STACK_VERSION
-                        );
-                        this.toolkit = bootstrap(toolkitStackVersion);
+                    if (toolkit == null) {
+                        toolkit = getToolkit(stackDefinition);
                     }
                     FileAssetMetadata fileAsset = (FileAssetMetadata) asset;
+                    String bucketName = toolkit.getBucketName();
                     String prefix = generatePrefix(fileAsset);
                     String filename = generateFilename(fileAsset);
                     FileAssetData fileData = fileAsset.getData();
@@ -135,7 +115,7 @@ public class StackDeployer {
                     publishmentTasks.add(() -> {
                         Path file = cloudAssemblyDirectory.resolve(fileAsset.getPath());
                         try {
-                            fileAssetPublisher.publish(file, prefix + filename, toolkit.getBucketName());
+                            fileAssetPublisher.publish(file, prefix + filename, bucketName);
                         } catch (IOException e) {
                             throw StackDeploymentException.builder(stackName, environment)
                                     .withCause("An error occurred while publishing the file asset " + file)
@@ -144,7 +124,7 @@ public class StackDeployer {
                         }
                     });
                     break;
-                case "container-image":
+                case IMAGE_PACKAGING:
                     ContainerImageAssetMetadata imageAsset = (ContainerImageAssetMetadata) asset;
                     publishmentTasks.add(createImagePublishmentTask(stackName, imageAsset));
                     break;
@@ -155,7 +135,6 @@ public class StackDeployer {
                             .build();
             }
         }
-
 
         Map<String, ParameterValue> effectiveParameters = parameters.entrySet().stream()
                 .filter(parameter -> stackDefinition.getParameters().containsKey(parameter.getKey()))
@@ -285,9 +264,7 @@ public class StackDeployer {
         }
 
         if (templateRef == null) {
-            if (toolkit == null) {
-                toolkit = bootstrap(DEFAULT_BOOTSTRAP_STACK_VERSION);
-            }
+            Toolkit toolkit = getToolkit(stackDefinition);
             String contentHash;
             try {
                 contentHash = hash(templateFile.toFile());
@@ -375,128 +352,62 @@ public class StackDeployer {
         return Optional.of(templateBody.toString(StandardCharsets.UTF_8.name()));
     }
 
-    private Toolkit bootstrap(int version) {
-        if (version > MAX_TOOLKIT_STACK_VERSION) {
-            throw BootstrapException.deploymentError(toolkitConfiguration.getStackName(), environment)
-                    .withCause("One of the stacks requires toolkit stack version " + version + " which is not " +
-                            "supported by the plugin. Please try to update the plugin version in order to fix the problem")
-                    .build();
-        }
-
-        String toolkitStackName = toolkitConfiguration.getStackName();
-        Stack toolkitStack = Stacks.findStack(client, toolkitStackName).orElse(null);
-
-        if (toolkitStack != null) {
-            if (Stacks.isInProgress(toolkitStack)) {
-                logger.info("Waiting until toolkit stack reaches stable state, environment={}, stackName={}",
-                        environment, toolkitStackName);
-                toolkitStack = awaitCompletion(toolkitStack);
-            }
-
-            if (toolkitStack.stackStatus() == StackStatus.ROLLBACK_COMPLETE || toolkitStack.stackStatus() == StackStatus.ROLLBACK_FAILED) {
-                logger.warn("The toolkit stack is in {} state. The stack will be deleted and a new one will be" +
-                        " created, environment={}, stackName={}", StackStatus.ROLLBACK_COMPLETE, environment, toolkitStackName);
-
-                toolkitStack = Stacks.deleteStack(client, toolkitStack.stackId());
-                toolkitStack = awaitCompletion(toolkitStack);
-
-            }
-
-            if (Stacks.isFailed(toolkitStack)) {
-                throw BootstrapException.deploymentError(toolkitStackName, environment)
-                        .withCause("The toolkit stack is in failed state: " + toolkitStack.stackStatus())
-                        .build();
-            }
-        }
-
-        int toolkitStackVersion = Stream.of(toolkitStack)
-                .filter(stack -> stack != null && stack.stackStatus() != StackStatus.DELETE_COMPLETE)
-                .filter(Stack::hasOutputs)
-                .flatMap(stack -> stack.outputs().stream())
-                .filter(output -> output.outputKey().equals(BOOTSTRAP_VERSION_OUTPUT))
-                .map(Output::outputValue)
-                .map(Integer::parseInt)
-                .findAny()
-                .orElse(version);
-
-        if (toolkitStackVersion > MAX_TOOLKIT_STACK_VERSION) {
-            throw BootstrapException.invalidStateError(toolkitStackName, environment)
-                    .withCause("The deployment toolkit stack version is newer than the latest supported by the plugin." +
-                            " Please try to update the plugin version in order to fix the problem")
-                    .build();
-        }
-
-        if (toolkitStack == null || toolkitStack.stackStatus() == StackStatus.DELETE_COMPLETE || toolkitStackVersion < version) {
-            TemplateRef toolkitTemplate;
-            try {
-                toolkitTemplate = getToolkitTemplateRef(version)
-                        .orElseThrow(() -> BootstrapException.deploymentError(toolkitStackName, environment)
-                                .withCause("The required bootstrap stack version " + version + " is not supported by " +
-                                        "the plugin. Please try to update the plugin version in order to fix the problem")
-                                .build());
-            } catch (IOException e) {
-                throw BootstrapException.deploymentError(toolkitStackName, environment)
-                        .withCause("Unable to load a template for the toolkit stack")
-                        .withCause(e)
-                        .build();
-            }
-
-            if (toolkitStack != null && toolkitStack.stackStatus() != StackStatus.DELETE_COMPLETE) {
-                logger.info("Deploying a newer version of the toolkit stack (updating from {} to {}), environment={}, " +
-                                "stackName={}", toolkitStackVersion, version, environment, toolkitStackName);
-                // TODO: consider the case when some of the parameters may be removed in the newer version
-                Map<String, ParameterValue> parameters = Stream.of(toolkitStack)
-                        .filter(Stack::hasParameters)
-                        .flatMap(s -> s.parameters().stream())
-                        .collect(Collectors.toMap(Parameter::parameterKey, p -> ParameterValue.unchanged()));
-                toolkitStack = Stacks.updateStack(client, toolkitStackName, toolkitTemplate, parameters);
-            } else {
-                logger.info("The toolkit stack doesn't exist. Deploying a new one, environment={}, stackName={}",
-                        environment, toolkitStackName);
-                toolkitStack = Stacks.createStack(client, toolkitStackName, toolkitTemplate);
-            }
-
-            logger.info("Waiting until the toolkit stack reaches stable state, environment={}, stackName={}",
-                    environment, toolkitStackName);
+    private Toolkit getToolkit(StackDefinition stack) {
+        Stack toolkitStack = Stacks.findStack(client, toolkitConfiguration.getStackName()).orElse(null);
+        if (toolkitStack != null && Stacks.isInProgress(toolkitStack)) {
+            logger.info("Waiting until toolkit stack reaches stable state, environment={}, stackName={}",
+                    environment, toolkitConfiguration.getStackName());
             toolkitStack = awaitCompletion(toolkitStack);
+        }
 
-            if (toolkitStack.stackStatus() != StackStatus.CREATE_COMPLETE && toolkitStack.stackStatus() != StackStatus.UPDATE_COMPLETE) {
-                throw BootstrapException.deploymentError(toolkitStackName, environment)
-                        .withCause("The stack didn't reach stable state: " + toolkitStack.stackStatus())
+        if (toolkitStack == null || toolkitStack.stackStatus() == StackStatus.DELETE_COMPLETE ||
+                toolkitStack.stackStatus() == StackStatus.ROLLBACK_COMPLETE) {
+            throw StackDeploymentException.builder(stack.getStackName(), environment)
+                    .withCause("The stack " + stack.getStackName() + " requires a bootstrap. Did you forged to " +
+                            "add 'bootstrap' goal to the execution")
+                    .build();
+        }
+
+        if (Stacks.isFailed(toolkitStack)) {
+            throw StackDeploymentException.builder(stack.getStackName(), environment)
+                    .withCause("The toolkit stack is in failed state. Please make sure that the toolkit stack is " +
+                            "stable before the deployment")
+                    .build();
+        }
+
+        Map<String, String> outputs = toolkitStack.outputs().stream()
+                .collect(Collectors.toMap(Output::outputKey, Output::outputValue));
+
+        if (stack.getRequiredToolkitStackVersion() != null) {
+            Integer toolkitStackVersion = Optional.ofNullable(outputs.get(BOOTSTRAP_VERSION_OUTPUT))
+                    .map(Integer::parseInt)
+                    .orElse(0);
+            if (toolkitStackVersion < stack.getRequiredToolkitStackVersion()) {
+                throw StackDeploymentException.builder(stack.getStackName(), environment)
+                        .withCause("The toolkit stack version is lower than the minimum version required by the " +
+                                "stack. Please update the toolkit stack or add 'bootstrap' goal to the plugin " +
+                                "execution if you want the plugin to automatically create or update toolkit stack")
                         .build();
             }
         }
 
-        Map<String, Output> outputs = toolkitStack.outputs().stream()
-                .collect(Collectors.toMap(Output::outputKey, Function.identity()));
-        String bucketName = Optional.ofNullable(outputs.get(BUCKET_NAME_OUTPUT))
-                .map(Output::outputValue)
-                .orElseThrow(() -> BootstrapException.invalidStateError(toolkitStackName, environment)
-                        .withCause("The toolkit stack doesn't have a required output '" + BUCKET_NAME_OUTPUT + "'")
-                        .build());
-        String bucketDomainName = Optional.ofNullable(outputs.get(BUCKET_DOMAIN_NAME_OUTPUT))
-                .map(Output::outputValue)
-                .orElseThrow(() -> BootstrapException.invalidStateError(toolkitStackName, environment)
-                        .withCause("The toolkit stack doesn't have a required output '" + BUCKET_DOMAIN_NAME_OUTPUT + "'")
-                        .build());
+        String bucketName = outputs.get(BUCKET_NAME_OUTPUT);
+        if (bucketName == null) {
+            throw StackDeploymentException.builder(stack.getStackName(), environment)
+                    .withCause("The toolkit stack " + toolkitConfiguration.getStackName() + " doesn't have a " +
+                            "required output '" + BUCKET_NAME_OUTPUT + "'")
+                    .build();
+        }
+
+        String bucketDomainName = outputs.get(BUCKET_DOMAIN_NAME_OUTPUT);
+        if (bucketDomainName == null) {
+            throw StackDeploymentException.builder(stack.getStackName(), environment)
+                    .withCause("The toolkit stack " + toolkitConfiguration.getStackName() + " doesn't have a " +
+                            "required output '" + BUCKET_DOMAIN_NAME_OUTPUT + "'")
+                    .build();
+        }
 
         return new Toolkit(bucketName, bucketDomainName);
-    }
-
-    private Optional<TemplateRef> getToolkitTemplateRef(Number version) throws IOException {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String templateFileName = String.format("bootstrap-template-v%d.yaml", version);
-        InputStream inputStream = classLoader.getResourceAsStream(templateFileName);
-        if (inputStream == null) {
-            return Optional.empty();
-        }
-
-        try (
-                InputStream is = inputStream;
-                Reader reader = new BufferedReader(new InputStreamReader(is))
-        ) {
-            return Optional.of(TemplateRef.fromString(CharStreams.toString(reader)));
-        }
     }
 
     private Stack awaitCompletion(Stack stack) {
@@ -507,11 +418,6 @@ public class StackDeployer {
             completedStack = Stacks.awaitCompletion(client, stack);
         }
         return completedStack;
-    }
-
-    private static Integer getDefaultBootstrapStackVersion() {
-        String newBootstrapEnabled = System.getenv("CDK_NEW_BOOTSTRAP");
-        return newBootstrapEnabled != null && !newBootstrapEnabled.isEmpty() ? 1 : 0;
     }
 
 }

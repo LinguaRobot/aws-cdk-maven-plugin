@@ -59,6 +59,7 @@
                         <id>deploy</id>
                         <goals>
                             <goal>synth</goal>
+                            <goal>bootstrap</goal>
                             <goal>deploy</goal>
                         </goals>
                         <configuration>
