@@ -20,6 +20,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Deploys toolkit stacks required by the CDK application.
+ */
 @Mojo(name = "bootstrap", defaultPhase = LifecyclePhase.DEPLOY)
 public class BootstrapMojo extends AbstractCdkMojo {
 

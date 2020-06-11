@@ -22,13 +22,14 @@ depending on the platform).
 
 ## Usage
 
-The plugin provides two goals:
+The plugin provides three goals:
 
 * `synth`: Synthesizes [CloudFormation](https://aws.amazon.com/cloudformation/) templates from the stacks defined in your
 CDK application.
+* `bootstrap`: Deploys required toolkit stacks into an AWS.
 * `deploy`: Deploys the cloud resources defined in the synthesized templates to AWS.
 
-Both goals require the parameter `<app>` to be specified, which is a full class name of the CDK application class 
+All three goals require the parameter `<app>` to be specified, which is a full class name of the CDK application class 
 defining the cloud infrastructure. The application class must either extend `software.amazon.awscdk.core.App` or define 
 a `main` method which is supposed to create an instance of `App`, define cloud 
 [constructs](https://docs.aws.amazon.com/cdk/latest/guide/constructs.html) and call `App#synth()` method in order to 
