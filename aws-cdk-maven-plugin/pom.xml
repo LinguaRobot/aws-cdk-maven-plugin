@@ -12,6 +12,14 @@
     <artifactId>aws-cdk-maven-plugin</artifactId>
     <packaging>maven-plugin</packaging>
 
+    <name>AWS CDK Maven Plugin</name>
+    <description>
+        The AWS CDK Maven plugin produces and deploys CloudFormation templates based on the cloud infrastructure defined
+        by means of CDK. The goal of the project is to improve the experience of Java developers while working with
+        CDK by eliminating the need for installing Node.js and interacting with the CDK application by means of CDK
+        Toolkit.
+    </description>
+
     <dependencies>
         <!-- Maven Dependencies -->
         <dependency>

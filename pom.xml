@@ -8,7 +8,31 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>CDK Maven Plugin Parent</name>
+    <name>AWS CDK Maven Support</name>
+    <description>A set of tools to interact with CDK application by means of Maven</description>
+    <url>https://github.com/LinguaRobot/aws-cdk-maven-plugin</url>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Roman Kishchenko</name>
+            <email>rkishchenko@linguarobot.io</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:ssh://git@github.com/LinguaRobot/aws-cdk-maven-plugin.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/LinguaRobot/aws-cdk-maven-plugin.git</developerConnection>
+        <url>https://github.com/LinguaRobot/aws-cdk-maven-plugin</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <modules>
         <module>aws-cdk-maven-plugin-api</module>
