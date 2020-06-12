@@ -11,6 +11,8 @@
 
     <artifactId>aws-cdk-maven-plugin-api</artifactId>
 
+    <name>AWS CDK Maven Plugin API</name>
+
     <dependencies>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>

@@ -11,6 +11,9 @@
 
     <artifactId>aws-cdk-cloud-manifest</artifactId>
 
+    <name>AWS CDK Cloud Manifest</name>
+    <description>Module for reading CDK cloud manifest from the cloud assembly directory.</description>
+
     <dependencies>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
