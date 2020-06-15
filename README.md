@@ -1,4 +1,5 @@
 # AWS CDK Maven Plugin
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.linguarobot/aws-cdk-maven-plugin/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/io.linguarobot/aws-cdk-maven-plugin)
 
 The AWS CDK Maven plugin produces and deploys CloudFormation templates based on your cloud infrastructure defined by 
 means of [CDK][1]. The goal of the project is to improve the experience of Java developers while working with CDK by 
@@ -18,6 +19,37 @@ depending on the platform).
 * Using Java system properties `aws.accessKeyId`, `aws.secretKey` and `aws.region`.
 * Using environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_DEFAULT_REGION`
 * Looking for the credentials and region associated with the default profile in the credentials and config files.
+
+## Getting Started
+
+Add the plugin to your Maven project:
+
+```xml
+<plugin>
+    <groupId>io.linguarobot</groupId>
+    <artifactId>aws-cdk-maven-plugin</artifactId>
+    <!-- Please use the latest available version: https://search.maven.org/artifact/io.linguarobot/aws-cdk -->
+    <version>${cdk.maven.plugin.version}</version>
+    <executions>
+        <execution>
+            <id>deploy-cdk-app</id>
+            <goals>
+                <goal>synth</goal>
+                <goal>bootstrap</goal>
+                <goal>deploy</goal>
+            </goals>
+            <configuration>
+                <!--Full class name of the app class defining your stacks -->
+                <app>${cdk.app}</app>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+```
+
+Please take a look at the [example project][6]. It is based on the project generated using `cdk init` with the 
+difference that it uses `aws-cdk-maven-plugin` instead of the CDK CLI. You can also find more examples in the
+[integration test](./aws-cdk-maven-plugin/src/it) directory.
 
 ## Usage
 
@@ -89,3 +121,4 @@ attached to the `deploy` Maven phase).
 [3]: https://docs.aws.amazon.com/cdk/latest/guide/tools.html#cli
 [4]: https://aws.amazon.com/cloudformation/
 [5]: https://docs.aws.amazon.com/cdk/latest/guide/constructs.html
+[6]: https://github.com/LinguaRobot/aws-cdk-maven-plugin-example
