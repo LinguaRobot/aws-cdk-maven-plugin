@@ -10,7 +10,7 @@ import java.util.List;
 public class FileAssetMetadata extends AssetMetadata {
 
     public FileAssetMetadata(
-            @JsonProperty("type") MetadataType type,
+            @JsonProperty("type") String type,
             @JsonProperty("data") FileAssetData data,
             @JsonProperty("trace") List<String> trace) {
         super(type, data, trace);

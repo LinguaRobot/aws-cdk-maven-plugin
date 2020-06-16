@@ -9,7 +9,7 @@ import java.util.List;
 public class ContainerImageAssetMetadata extends AssetMetadata {
 
     public ContainerImageAssetMetadata(
-            @JsonProperty("type") MetadataType type,
+            @JsonProperty("type") String type,
             @JsonProperty("data") ContainerAssetData data,
             @JsonProperty("trace") List<String> trace) {
         super(type, data, trace);
