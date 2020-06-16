@@ -19,11 +19,11 @@ import java.util.List;
 @JsonTypeResolver(NestedPropertyTypeResolver.class)
 public class ArtifactMetadata {
 
-    private final MetadataType type;
+    private final String type;
     private final Object data;
     private final List<String> trace;
 
-    public ArtifactMetadata(@JsonProperty("type") MetadataType type,
+    public ArtifactMetadata(@JsonProperty("type") String type,
                             @JsonProperty("data") Object data,
                             @JsonProperty("trace") List<String> trace) {
         this.type = type;
@@ -34,7 +34,7 @@ public class ArtifactMetadata {
     /**
      * The type of the metadata entry.
      */
-    public MetadataType getType() {
+    public String getType() {
         return type;
     }
 

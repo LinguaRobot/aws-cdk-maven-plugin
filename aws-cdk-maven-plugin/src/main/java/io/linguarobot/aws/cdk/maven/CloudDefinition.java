@@ -63,7 +63,7 @@ public class CloudDefinition {
                     Map<String, ParameterDefinition> parameters = getParameterDefinitions(template);
                     List<AssetMetadata> assets = stackArtifact.getMetadata().values().stream()
                             .flatMap(List::stream)
-                            .filter(metadata -> metadata.getType() == MetadataType.ASSET)
+                            .filter(metadata -> MetadataTypes.ASSET.equals(metadata.getType()))
                             .map(metadata -> (AssetMetadata) metadata)
                             .collect(Collectors.toList());
                     Map<String, Map<String, Object>> resources = (Map<String, Map<String, Object>>) template.getOrDefault("Resources", ImmutableMap.of());

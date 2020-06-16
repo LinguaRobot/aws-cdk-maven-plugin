@@ -6,7 +6,7 @@ public abstract class AssetMetadata extends ArtifactMetadata {
 
     private final AssetData data;
 
-    protected AssetMetadata(MetadataType type, AssetData data, List<String> trace) {
+    protected AssetMetadata(String type, AssetData data, List<String> trace) {
         super(type, data, trace);
         this.data = data;
     }
