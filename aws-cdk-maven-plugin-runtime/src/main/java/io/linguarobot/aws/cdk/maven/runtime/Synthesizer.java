@@ -22,7 +22,6 @@ public class Synthesizer {
         try {
             run(args[0], Arrays.copyOfRange(args, 1, args.length));
         } catch (Throwable e) {
-            System.err.print(e.toString());
             e.printStackTrace(System.err);
             System.exit(1);
         }
