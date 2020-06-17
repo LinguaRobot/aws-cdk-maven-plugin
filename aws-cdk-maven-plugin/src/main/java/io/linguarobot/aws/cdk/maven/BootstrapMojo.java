@@ -162,16 +162,22 @@ public class BootstrapMojo extends AbstractCdkMojo {
                         environment, toolkitStackName);
                 toolkitStack = Stacks.createStack(client, toolkitStackName, toolkitTemplate);
             }
-
-            logger.info("Waiting until the toolkit stack reaches stable state, environment={}, stackName={}",
-                    environment, toolkitStackName);
-            toolkitStack = awaitCompletion(client, toolkitStack);
-
-            if (toolkitStack.stackStatus() != StackStatus.CREATE_COMPLETE && toolkitStack.stackStatus() != StackStatus.UPDATE_COMPLETE) {
+            if (!Stacks.isCompleted(toolkitStack)) {
+                logger.info("Waiting until the toolkit stack reaches stable state, environment={}, stackName={}",
+                        environment, toolkitStackName);
+                toolkitStack = awaitCompletion(client, toolkitStack);
+            }
+            if (Stacks.isFailed(toolkitStack)) {
                 throw BootstrapException.deploymentError(toolkitStackName, environment)
-                        .withCause("The stack didn't reach stable state: " + toolkitStack.stackStatus())
+                        .withCause("The deployment has failed: " + toolkitStack.stackStatus())
                         .build();
             }
+            if (Stacks.isRolledBack(toolkitStack)) {
+                throw BootstrapException.deploymentError(toolkitStackName, environment)
+                        .withCause("The deployment has been unsuccessful, the stack has been rolled back to its previous state")
+                        .build();
+            }
+            logger.info("The toolkit stack has been successfully deployed, stackName={}", toolkitStackName);
         }
     }
 

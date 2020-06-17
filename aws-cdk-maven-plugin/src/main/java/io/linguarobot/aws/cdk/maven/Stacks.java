@@ -64,6 +64,12 @@ public class Stacks {
             .add(StackStatus.IMPORT_ROLLBACK_FAILED)
             .build();
 
+    private static final Set<StackStatus> ROLLED_BACK_STATUSES = ImmutableSet.<StackStatus>builder()
+            .add(StackStatus.ROLLBACK_COMPLETE)
+            .add(StackStatus.UPDATE_ROLLBACK_COMPLETE)
+            .add(StackStatus.IMPORT_ROLLBACK_COMPLETE)
+            .build();
+
     private static final Capability[] CAPABILITIES =
             new Capability[]{Capability.CAPABILITY_IAM, Capability.CAPABILITY_NAMED_IAM, Capability.CAPABILITY_AUTO_EXPAND};
 
@@ -161,6 +167,10 @@ public class Stacks {
 
     public static boolean isFailed(Stack stack) {
         return FAILED_STATUSES.contains(stack.stackStatus());
+    }
+
+    public static boolean isRolledBack(Stack stack) {
+        return ROLLED_BACK_STATUSES.contains(stack.stackStatus());
     }
 
     public static Stack awaitCompletion(CloudFormationClient client, Stack stack) {

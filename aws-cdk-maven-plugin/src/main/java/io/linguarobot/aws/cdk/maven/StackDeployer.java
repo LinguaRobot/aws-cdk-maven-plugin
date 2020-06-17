@@ -190,13 +190,16 @@ public class StackDeployer {
                 logger.info("Waiting until '{}' reaches stable state", stackName);
                 stack = awaitCompletion(stack);
             }
-
             if (Stacks.isFailed(stack)) {
                 throw StackDeploymentException.builder(stackName, environment)
                         .withCause("The deployment has failed: " + stack.stackStatus())
                         .build();
             }
-
+            if (Stacks.isRolledBack(stack)) {
+                throw StackDeploymentException.builder(stackName, environment)
+                        .withCause("The deployment has been unsuccessful, the stack has been rolled back to its previous state")
+                        .build();
+            }
             logger.info("The stack '{}' has been successfully deployed", stackName);
         }
 
