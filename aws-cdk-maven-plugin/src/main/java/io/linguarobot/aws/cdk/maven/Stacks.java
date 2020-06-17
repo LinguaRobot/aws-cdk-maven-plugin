@@ -140,8 +140,9 @@ public class Stacks {
     public static Stack deleteStack(CloudFormationClient client, String stackName) {
         Objects.requireNonNull(client, "CloudFormation client can't be null");
         Objects.requireNonNull(stackName, "stack name can't be null");
+        Stack stack = getStack(client, stackName);
         DeleteStackRequest request = DeleteStackRequest.builder()
-                .stackName(stackName)
+                .stackName(stack.stackId())
                 .build();
         client.deleteStack(request);
         return getStack(client, stackName);

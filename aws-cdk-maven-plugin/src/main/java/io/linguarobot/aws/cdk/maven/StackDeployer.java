@@ -168,7 +168,7 @@ public class StackDeployer {
 
         boolean updated = true;
         Stack stack;
-        if (deployedStack != null) {
+        if (deployedStack != null && deployedStack.stackStatus() != StackStatus.DELETE_COMPLETE) {
             try {
                 stack = Stacks.updateStack(client, stackName, templateRef, effectiveParameters);
             } catch (CloudFormationException e) {
