@@ -1,0 +1,25 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "An invalid template which is used to create a stack in 'ROLLBACK_COMPLETE' state",
+  "Resources": {
+    "UserTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "TableName": "user",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "id",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "invalidAttribute",
+            "KeyType": "HASH"
+          }
+        ]
+      }
+    }
+  }
+}
