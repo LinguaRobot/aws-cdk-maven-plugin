@@ -68,11 +68,11 @@ public class StackDeployer {
                 .build();
     }
 
-    public Stack deploy(StackDefinition stackDefinition) {
+    public Stack deploy(StackDefinition stackDefinition, Map<String, String> parameters) {
         String stackName = stackDefinition.getStackName();
         logger.info("Deploying '{}' stack", stackName);
 
-        Map<String, ParameterValue> parameters = new HashMap<>();
+        Map<String, ParameterValue> stackParameters = new HashMap<>();
         Stack deployedStack = Stacks.findStack(client, stackName).orElse(null);
         if (deployedStack != null) {
             if (Stacks.isInProgress(deployedStack)) {
@@ -90,10 +90,11 @@ public class StackDeployer {
                         .build();
             }
             if (deployedStack.stackStatus() != StackStatus.DELETE_COMPLETE) {
-                deployedStack.parameters().forEach(p -> parameters.put(p.parameterKey(), ParameterValue.unchanged()));
+                deployedStack.parameters().forEach(p -> stackParameters.put(p.parameterKey(), ParameterValue.unchanged()));
             }
         }
-        stackDefinition.getParameterValues().forEach((name, value) -> parameters.put(name, ParameterValue.value(value)));
+        stackDefinition.getParameterValues().forEach((name, value) -> stackParameters.put(name, ParameterValue.value(value)));
+        parameters.forEach((name, value) -> stackParameters.put(name, ParameterValue.value(value)));
         Toolkit toolkit = null;
         List<Runnable> publishmentTasks = new ArrayList<>();
         for (AssetMetadata asset : stackDefinition.getAssets()) {
@@ -108,9 +109,9 @@ public class StackDeployer {
                     String prefix = generatePrefix(fileAsset);
                     String filename = generateFilename(fileAsset);
                     FileAssetData fileData = fileAsset.getData();
-                    parameters.put(fileData.getS3BucketParameter(), ParameterValue.value(toolkit.getBucketName()));
-                    parameters.put(fileData.getS3KeyParameter(), ParameterValue.value(String.join(ASSET_PREFIX_SEPARATOR, prefix, filename)));
-                    parameters.put(fileData.getArtifactHashParameter(), ParameterValue.value(fileAsset.getSourceHash()));
+                    stackParameters.put(fileData.getS3BucketParameter(), ParameterValue.value(toolkit.getBucketName()));
+                    stackParameters.put(fileData.getS3KeyParameter(), ParameterValue.value(String.join(ASSET_PREFIX_SEPARATOR, prefix, filename)));
+                    stackParameters.put(fileData.getArtifactHashParameter(), ParameterValue.value(fileAsset.getSourceHash()));
 
                     publishmentTasks.add(() -> {
                         Path file = cloudAssemblyDirectory.resolve(fileAsset.getPath());
@@ -136,7 +137,7 @@ public class StackDeployer {
             }
         }
 
-        Map<String, ParameterValue> effectiveParameters = parameters.entrySet().stream()
+        Map<String, ParameterValue> effectiveParameters = stackParameters.entrySet().stream()
                 .filter(parameter -> stackDefinition.getParameters().containsKey(parameter.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 

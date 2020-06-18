@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.linguarobot</groupId>
-    <artifactId>synth-deploy-basic-it</artifactId>
+    <artifactId>synth-deploy-after-rollback-it</artifactId>
     <version>1.0.0</version>
 
     <description>
