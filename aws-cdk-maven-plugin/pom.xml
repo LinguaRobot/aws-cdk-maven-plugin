@@ -168,6 +168,9 @@
                     <environmentVariables>
                         <AWS_REGION>us-east-1</AWS_REGION>
                     </environmentVariables>
+                    <mavenOpts>
+                        -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+                    </mavenOpts>
                     <goals>
                         <goal>clean</goal>
                         <goal>deploy</goal>
