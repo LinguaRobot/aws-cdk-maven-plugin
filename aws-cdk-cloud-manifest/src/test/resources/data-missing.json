@@ -1,0 +1,6 @@
+{
+  "type": "aws:cdk:asset",
+  "trace": [
+    "trace"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "type": "aws:cdk:asset",
+  "data": {
+    "path": "file.jar",
+    "hash": "file-hash",
+    "packaging": "file"
+  },
+  "trace": [
+    "trace"
+  ]
+}

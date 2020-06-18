@@ -1,0 +1,11 @@
+{
+  "type": "aws:cdk:asset",
+  "data": {
+    "repositoryName": "repository",
+    "imageTag": "latest",
+    "packaging": "container-image"
+  },
+  "trace": [
+    "trace"
+  ]
+}

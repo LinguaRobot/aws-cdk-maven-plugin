@@ -1,0 +1,10 @@
+{
+  "type": "aws:cdk:asset",
+  "data": {
+    "path": "file",
+    "hash": "file-hash"
+  },
+  "trace": [
+    "trace"
+  ]
+}
