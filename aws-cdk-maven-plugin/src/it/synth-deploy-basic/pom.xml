@@ -7,6 +7,11 @@
     <artifactId>synth-deploy-basic-it</artifactId>
     <version>1.0.0</version>
 
+    <description>
+        Tests that a stack with a single bucket is created and a parameter specified in the plugin configuration is
+        passed.
+    </description>
+
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -51,6 +56,9 @@
                         <configuration>
                             <app>io.linguarobot.aws.cdk.maven.it.DeployBasicTestApp</app>
                             <toolkitStackName>basic-it-cdk-toolkit</toolkitStackName>
+                            <parameters>
+                                <Parameter>OverriddenValue</Parameter>
+                            </parameters>
                         </configuration>
                     </execution>
                 </executions>

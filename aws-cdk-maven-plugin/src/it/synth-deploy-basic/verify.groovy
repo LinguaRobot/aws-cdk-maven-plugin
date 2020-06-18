@@ -22,6 +22,11 @@ try {
     def stack = Stacks.findStack(cfnClient, "synth-deploy-basic-test-stack").orElse(null);
     assert stack?.stackStatus() == StackStatus.CREATE_COMPLETE
 
+    def parameterValue = Stacks.findOutput(stack, "ParameterValue")
+            .map{output -> output.outputValue()}
+            .orElse(null)
+    assert parameterValue == "OverriddenValue"
+
     def toolkitStack = Stacks.findStack(cfnClient, "basic-cdk-toolkit").orElse(null);
     assert toolkitStack == null
 } finally {

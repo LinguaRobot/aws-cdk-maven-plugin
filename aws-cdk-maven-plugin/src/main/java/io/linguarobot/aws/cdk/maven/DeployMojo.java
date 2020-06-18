@@ -1,5 +1,6 @@
 package io.linguarobot.aws.cdk.maven;
 
+import com.google.common.collect.ImmutableMap;
 import io.linguarobot.aws.cdk.maven.process.DefaultProcessRunner;
 import io.linguarobot.aws.cdk.maven.process.ProcessRunner;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -28,6 +29,13 @@ public class DeployMojo extends AbstractCdkMojo {
     @Parameter(defaultValue = "CDKToolkit")
     private String toolkitStackName;
 
+    /**
+     * Input parameters for the stacks. An existing value will be used in case a stack is updated and the parameter is
+     * not specified. For new stacks, all the parameters without default value must be specified.
+     */
+    @Parameter
+    private Map<String, String> parameters;
+
     @Override
     public void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
         if (!Files.exists(cloudAssemblyDirectory)) {
@@ -48,7 +56,7 @@ public class DeployMojo extends AbstractCdkMojo {
                     toolkitConfiguration, filePublisher, dockerImagePublisher);
             environmentStacks.forEach(stack -> {
                 if (!stack.getResources().isEmpty()) {
-                    stackDeployer.deploy(stack);
+                    stackDeployer.deploy(stack, parameters != null ? parameters : ImmutableMap.of());
                 } else {
                     stackDeployer.destroy(stack);
                 }
