@@ -1,7 +1,7 @@
 package io.linguarobot.aws.cdk.maven.node;
 
 import io.linguarobot.aws.cdk.maven.process.ProcessRunner;
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.compress.utils.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
