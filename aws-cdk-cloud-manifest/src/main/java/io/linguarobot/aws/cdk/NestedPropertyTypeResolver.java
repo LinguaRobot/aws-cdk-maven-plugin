@@ -55,12 +55,22 @@ public class NestedPropertyTypeResolver extends StdTypeResolverBuilder {
         public Object deserializeTypedFromObject(JsonParser parser, DeserializationContext context) throws IOException {
             List<String> path = Arrays.stream(_typePropertyName.split("\\."))
                     .collect(Collectors.toList());
-            return findDeserializer(parser, path, context, new TokenBuffer(parser, context));
+            TokenBuffer tokenBuffer = new TokenBuffer(parser, context);
+            Object object = null;
+            if (!path.isEmpty()) {
+                object = deserializeTypedObject(parser, path, context, tokenBuffer);
+            }
+
+            if (object == null) {
+                object = _deserializeTypedUsingDefaultImpl(parser, context, tokenBuffer);
+            }
+
+            return object;
         }
 
-        private Object findDeserializer(JsonParser parser, List<String> path, DeserializationContext context, TokenBuffer tokenBuffer) throws IOException {
-            if (path.isEmpty()) {
-                return _deserializeTypedUsingDefaultImpl(parser, context, tokenBuffer);
+        private Object deserializeTypedObject(JsonParser parser, List<String> path, DeserializationContext context, TokenBuffer tokenBuffer) throws IOException {
+            if (path == null || path.isEmpty()) {
+                throw new IllegalArgumentException("Type id path can't be null or empty");
             }
 
             JsonToken token = parser.currentToken();
@@ -68,24 +78,31 @@ public class NestedPropertyTypeResolver extends StdTypeResolverBuilder {
                 token = parser.nextToken();
                 while (token == JsonToken.FIELD_NAME) {
                     String fieldName = parser.currentName();
-                    parser.nextToken();
-                    if (fieldName.equals(path.get(0))) {
-                        List<String> subPath = path.subList(1, path.size());
-                        if (subPath.isEmpty()) {
-                            return _deserializeTypedForId(parser, context, tokenBuffer);
-                        } else if (parser.currentToken() == JsonToken.START_OBJECT) {
-                            tokenBuffer.writeFieldName(fieldName);
-                            tokenBuffer.writeStartObject();
-                            return findDeserializer(parser, subPath, context, tokenBuffer);
-                        }
+                    token = parser.nextToken();
+
+                    if (fieldName.equals(path.get(0)) && path.size() == 1 && token != JsonToken.VALUE_NULL &&
+                            token.isScalarValue()) {
+                        return _deserializeTypedForId(parser, context, tokenBuffer);
                     }
-                    tokenBuffer.writeFieldName(fieldName);
-                    tokenBuffer.copyCurrentStructure(parser);
+
+                    if (fieldName.equals(path.get(0)) && path.size() > 1 && token == JsonToken.START_OBJECT) {
+                        tokenBuffer.writeFieldName(fieldName);
+                        tokenBuffer.writeStartObject();
+                        Object object = deserializeTypedObject(parser, path.subList(1, path.size()), context, tokenBuffer);
+                        if (object != null) {
+                            return object;
+                        }
+                        tokenBuffer.writeEndObject();
+                    } else {
+                        tokenBuffer.writeFieldName(fieldName);
+                        tokenBuffer.copyCurrentStructure(parser);
+                    }
+
                     token = parser.nextToken();
                 }
             }
 
-            return _deserializeTypedUsingDefaultImpl(parser, context, tokenBuffer);
+            return null;
         }
 
     }
