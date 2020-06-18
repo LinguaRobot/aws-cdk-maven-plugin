@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,6 +40,12 @@ public class BootstrapMojo extends AbstractCdkMojo {
     @Parameter(defaultValue = "CDKToolkit")
     private String toolkitStackName;
 
+    /**
+     * Stacks, for which bootstrapping will be performed if it's required.
+     */
+    @Parameter
+    private Set<String> stacks;
+
     @Override
     public void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
         if (!Files.exists(cloudAssemblyDirectory)) {
@@ -48,6 +55,7 @@ public class BootstrapMojo extends AbstractCdkMojo {
 
         CloudDefinition cloudDefinition = CloudDefinition.create(cloudAssemblyDirectory);
         Map<String, Integer> environments = cloudDefinition.getStacks().stream()
+                .filter(stack -> this.stacks == null || this.stacks.contains(stack.getStackName()))
                 .filter(this::isBootstrapRequired)
                 .collect(Collectors.groupingBy(
                         StackDefinition::getEnvironment,

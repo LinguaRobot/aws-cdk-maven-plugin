@@ -7,11 +7,14 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -19,6 +22,8 @@ import java.util.stream.Collectors;
  */
 @Mojo(name = "deploy", defaultPhase = LifecyclePhase.DEPLOY)
 public class DeployMojo extends AbstractCdkMojo {
+
+    private static final Logger logger = LoggerFactory.getLogger(DeployMojo.class);
 
     @Parameter(defaultValue = "${project}", required = true, readonly = true)
     private MavenProject project;
@@ -28,6 +33,12 @@ public class DeployMojo extends AbstractCdkMojo {
      */
     @Parameter(defaultValue = "CDKToolkit")
     private String toolkitStackName;
+
+    /**
+     * Stacks to be deployed. By default, all the stacks will be deployed.
+     */
+    @Parameter
+    private Set<String> stacks;
 
     /**
      * Input parameters for the stacks. An existing value will be used in case a stack is updated and the parameter is
@@ -44,7 +55,18 @@ public class DeployMojo extends AbstractCdkMojo {
         }
 
         CloudDefinition cloudDefinition = CloudDefinition.create(cloudAssemblyDirectory);
+        if (this.stacks != null && logger.isWarnEnabled()) {
+            Set<String> stackNames = cloudDefinition.getStacks().stream()
+                    .map(StackDefinition::getStackName)
+                    .collect(Collectors.toSet());
+            this.stacks.stream()
+                    .filter(s -> !stackNames.contains(s))
+                    .forEach(missingStack -> logger.warn("The stack '{}' can't be deployed as there's no stack with " +
+                            "such name defined in your CDK application", missingStack));
+        }
+
         Map<String, List<StackDefinition>> stacks = cloudDefinition.getStacks().stream()
+                .filter(stack -> this.stacks == null || this.stacks.contains(stack.getStackName()))
                 .collect(Collectors.groupingBy(StackDefinition::getEnvironment));
         ProcessRunner processRunner = new DefaultProcessRunner(project.getBasedir());
         stacks.forEach((environment, environmentStacks) -> {
