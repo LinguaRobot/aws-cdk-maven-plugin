@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.linguarobot</groupId>
+    <artifactId>synth-deploy-stacks-parameter-it</artifactId>
+    <version>1.0.0</version>
+
+    <description>
+        Tests that only the stacks (and corresponding toolkit stacks) specified in the 'stacks' parameter are deployed
+    </description>
+
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <cdk.version>1.35.0</cdk.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>software.amazon.awscdk</groupId>
+            <artifactId>core</artifactId>
+            <version>${cdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awscdk</groupId>
+            <artifactId>s3-assets</artifactId>
+            <version>${cdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awscdk</groupId>
+            <artifactId>dynamodb</artifactId>
+            <version>${cdk.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>@project.groupId@</groupId>
+                <artifactId>aws-cdk-maven-plugin</artifactId>
+                <version>@project.version@</version>
+                <executions>
+                    <execution>
+                        <id>synth</id>
+                        <goals>
+                            <goal>synth</goal>
+                        </goals>
+                        <configuration>
+                            <app>io.linguarobot.aws.cdk.maven.it.StacksParameterApp</app>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>deploy-dev</id>
+                        <goals>
+                            <goal>bootstrap</goal>
+                            <goal>deploy</goal>
+                        </goals>
+                        <configuration>
+                            <stacks>
+                                <stack>stacks-parameter-test-stack-dev</stack>
+                            </stacks>
+                            <toolkitStackName>stacks-parameter-cdk-toolkit-dev</toolkitStackName>
+                            <parameters>
+                                <UserTableName>user_dev</UserTableName>
+                            </parameters>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>deploy-prod</id>
+                        <goals>
+                            <goal>bootstrap</goal>
+                            <goal>deploy</goal>
+                        </goals>
+                        <configuration>
+                            <stacks>
+                                <stack>stacks-parameter-test-stack-prod</stack>
+                            </stacks>
+                            <toolkitStackName>stacks-parameter-cdk-toolkit-prod</toolkitStackName>
+                            <parameters>
+                                <UserTableName>user</UserTableName>
+                            </parameters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

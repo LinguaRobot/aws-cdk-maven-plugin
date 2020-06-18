@@ -19,7 +19,7 @@ import java.util.Map;
         @JsonSubTypes.Type(value = StackArtifact.class, name = "aws:cloudformation:stack"),
         @JsonSubTypes.Type(value = TreeArtifact.class, name = "cdk:tree"),
         @JsonSubTypes.Type(value = AssetArtifact.class,name = "cdk:asset-manifest"),
-        @JsonSubTypes.Type(value = ArtifactMetadata.class, name = "none")
+        @JsonSubTypes.Type(value = Artifact.class, name = "none")
 })
 public class Artifact {
 
