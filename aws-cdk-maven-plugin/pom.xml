@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.linguarobot</groupId>
         <artifactId>aws-cdk</artifactId>
-        <version>0.0.4-SNAPSHOT</version>
+        <version>0.0.4</version>
     </parent>
 
     <artifactId>aws-cdk-maven-plugin</artifactId>
