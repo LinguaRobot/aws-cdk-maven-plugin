@@ -28,7 +28,7 @@ Add the plugin to your Maven project:
 <plugin>
     <groupId>io.linguarobot</groupId>
     <artifactId>aws-cdk-maven-plugin</artifactId>
-    <!-- Please use the latest available version: https://search.maven.org/artifact/io.linguarobot/aws-cdk -->
+    <!-- Please use the latest available version: https://search.maven.org/artifact/io.linguarobot/aws-cdk-maven-plugin -->
     <version>${cdk.maven.plugin.version}</version>
     <executions>
         <execution>
@@ -39,8 +39,13 @@ Add the plugin to your Maven project:
                 <goal>deploy</goal>
             </goals>
             <configuration>
-                <!--Full class name of the app class defining your stacks -->
+                <!-- Full class name of the app class defining your stacks -->
                 <app>${cdk.app}</app>
+                <!-- Input parameters for the stacks. -->
+                <parameters>
+                    <ParameterName>...</ParameterName>
+                    ...
+                </parameters>
             </configuration>
         </execution>
     </executions>
@@ -61,9 +66,10 @@ The plugin provides three goals:
 
 ### Synthesis
 
-During the execution of `synth` goal, a cloud assembly is synthesized into a directory (`target/cdk.out` by default). 
-The cloud assembly includes CloudFormation templates, AWS Lambda bundles, file and Docker image assets, and other 
-deployment artifacts.
+During the execution of `synth` goal, a cloud assembly is synthesized. The cloud assembly is a directory 
+(`target/cdk.out` by default) containing the artifacts required for the deployment, i.e. CloudFormation templates, AWS 
+Lambda bundles, file and Docker image assets etc. The artifacts in the cloud assembly directory are later used by 
+`bootstrap` and `deploy` goals.
 
 The only mandatory parameter required by the goal is `<app>`, which is a full class name of the CDK app class defining 
 the cloud infrastructure. The application class must either extend `software.amazon.awscdk.core.App` or define a 
@@ -99,6 +105,14 @@ public class MyApp {
 }
 ```
 
+#### Configuration
+
+| Parameter | Type | Since | Description |
+| --- | --- | --- | --- |
+| `<app>` | `String` | `0.0.1` | Full class name of the CDK app class defining the cloud infrastructure. |
+| `<profile>` | `String` | `0.0.1` | A profile that will be used to find credentials and region. |
+| `<cloudAssemblyDirectory>` | `String` | `0.0.1` | A directory where the cloud assembly will be synthesized. |
+
 ### Bootstrapping
 
 Some CDK applications may require a "toolkit stack" that includes the resources required for the application operation. 
@@ -111,10 +125,30 @@ process by yourself or just want to make sure that the toolkit stack is not crea
 `bootstrap` goal, you will need to install the toolkit stack the first time you deploy an AWS CDK application into an 
 environment (account/region) by running `cdk bootstrap` command (please refer to [AWS CDK Toolkit][3] for the details).
 
+#### Configuration
+
+| Parameter | Type | Since | Description |
+| --- | --- | --- | --- |
+| `<profile>` | `String` | `0.0.1` | A profile that will be used to find credentials and region. |
+| `<cloudAssemblyDirectory>` | `String` | `0.0.1` | A cloud assembly directory with the deployment artifacts (`target/cdk.out` by default). |
+| `<toolkitStackName>` | `String` | `0.0.1` | The name of the CDK toolkit stack (`CDKToolkit` by default). |
+| `<stacks>` | `List<String>` | `0.0.4` | Stacks to deploy. The plugin will create the toolkit stacks only for those stacks that are being deployed (by default, all the stacks defined in your application will be deployed). |
+
 ### Deployment
 
 To deploy the synthesized application into an AWS, add `deploy` goal to the execution (`deploy` and `bootstrap` goals are
 attached to the `deploy` Maven phase).
+
+#### Configuration
+
+| Parameter | Type | Since | Description |
+| --- | --- | --- | --- |
+| `<profile>` | `String` | `0.0.1` | A profile that will be used to find credentials and region. |
+| `<cloudAssemblyDirectory>` | `String` | `0.0.1` | A cloud assembly directory with the deployment artifacts (`target/cdk.out` by default). |
+| `<toolkitStackName>` | `String` | `0.0.1` | The name of the CDK toolkit stack to use (`CDKToolkit` is used by default). |
+| `<stacks>` | `List<String>` | `0.0.4` | Stacks to deploy. By default, all the stacks defined in your application will be deployed. |
+| `<parameters>` | `Map<String, String>` | `0.0.4` | Input parameters for the stacks. For the new stacks, all the parameters without a default value must be specified. In the case of an update, existing values will be reused. |
+
 
 [1]: https://aws.amazon.com/cdk/
 [2]: https://nodejs.org/en/download

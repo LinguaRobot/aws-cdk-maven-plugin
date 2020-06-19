@@ -41,8 +41,8 @@ public class DeployMojo extends AbstractCdkMojo {
     private Set<String> stacks;
 
     /**
-     * Input parameters for the stacks. An existing value will be used in case a stack is updated and the parameter is
-     * not specified. For new stacks, all the parameters without default value must be specified.
+     * Input parameters for the stacks. For the new stacks, all the parameters without a default value must be
+     * specified. In the case of an update, existing values will be reused.
      */
     @Parameter
     private Map<String, String> parameters;
