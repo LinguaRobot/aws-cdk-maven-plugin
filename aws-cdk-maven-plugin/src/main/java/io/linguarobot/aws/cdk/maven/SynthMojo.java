@@ -62,12 +62,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -123,6 +118,12 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
     @Parameter(required = true)
     private String app;
 
+    /**
+     * Arguments to be passed to the application.
+     */
+    @Parameter
+    private List<String> arguments;
+
     private ProcessRunner processRunner;
     private Map<String, ContextProvider> contextProviders;
 
@@ -130,7 +131,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
     public void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
         this.processRunner = new DefaultProcessRunner(project.getBasedir());
         this.contextProviders = initContextProviders(environmentResolver);
-        synthesize(app, cloudAssemblyDirectory, environmentResolver);
+        synthesize(app,arguments != null ? arguments : Collections.emptyList(), cloudAssemblyDirectory, environmentResolver);
     }
 
     private Map<String, ContextProvider> initContextProviders(EnvironmentResolver environmentResolver) {
@@ -161,7 +162,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
                 .build();
     }
 
-    protected CloudManifest synthesize(String app, Path outputDirectory, EnvironmentResolver environmentResolver) {
+    protected CloudManifest synthesize(String app, List<String> arguments, Path outputDirectory, EnvironmentResolver environmentResolver) {
         Map<String, String> environment;
         if (SystemUtils.IS_OS_WINDOWS) {
             environment = System.getenv().entrySet().stream()
@@ -195,7 +196,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
         JsonObject context = readContext();
 
         logger.info("Synthesizing the cloud assembly for the '{}' application", app);
-        CloudManifest cloudManifest = synthesize(app, outputDirectory, environment, context);
+        CloudManifest cloudManifest = synthesize(app, arguments, outputDirectory, environment, context);
 
         while (!cloudManifest.getMissingContexts().isEmpty()) {
             JsonObjectBuilder contextBuilder = Json.createObjectBuilder(context);
@@ -224,7 +225,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
                 contextBuilder.add(key, contextValue);
             });
             context = contextBuilder.build();
-            cloudManifest = synthesize(app, outputDirectory, environment, context);
+            cloudManifest = synthesize(app, arguments, outputDirectory, environment, context);
         }
 
         if (!context.isEmpty()) {
@@ -258,7 +259,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
         return context;
     }
 
-    private CloudManifest synthesize(String app, Path outputDirectory, Map<String, String> environment, JsonObject context) {
+    private CloudManifest synthesize(String app, List<String> arguments, Path outputDirectory, Map<String, String> environment, JsonObject context) {
         Map<String, String> appEnvironment;
         if (context.isEmpty()) {
             appEnvironment = environment;
@@ -270,7 +271,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
         }
 
         int exitCode;
-        List<String> appExecutionCommand = buildAppExecutionCommand(app);
+        List<String> appExecutionCommand = buildAppExecutionCommand(app, arguments);
         ProcessContext processContext = ProcessContext.builder()
                 .withEnvironment(appEnvironment)
                 .build();
@@ -299,7 +300,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
         }
     }
 
-    private List<String> buildAppExecutionCommand(String app) {
+    private List<String> buildAppExecutionCommand(String app, List<String> arguments) {
         String java = Optional.ofNullable(this.toolchainManager.getToolchainFromBuildContext("jdk", this.session))
                 .map(toolchain -> toolchain.findTool("java"))
                 .orElseGet(() -> System.getProperty("java.home") + File.separator + "bin" + File.separator + "java");
@@ -310,7 +311,8 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
                 Stream.of(Synthesizer.class.getProtectionDomain().getCodeSource().getLocation().getFile())
         ).collect(Collectors.joining(File.pathSeparator));
 
-        return ImmutableList.of(java, "-cp", classpath, Synthesizer.class.getName(), app);
+        return Stream.concat(Stream.of(java, "-cp", classpath, Synthesizer.class.getName(), app), arguments.stream())
+                .collect(Collectors.toList());
     }
 
     private Optional<NodeVersion> getInstalledNodeVersion() {
