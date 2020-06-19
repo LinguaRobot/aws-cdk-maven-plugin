@@ -112,6 +112,7 @@ public class MyApp {
 | `<app>` | `String` | `0.0.1` | Full class name of the CDK app class defining the cloud infrastructure. |
 | `<profile>` | `String` | `0.0.1` | A profile that will be used to find credentials and region. |
 | `<cloudAssemblyDirectory>` | `String` | `0.0.1` | A directory where the cloud assembly will be synthesized. |
+| `<arguments>` | `List<String>` | `0.0.5` | A list of arguments to be passed to the CDK application. |
 
 ### Bootstrapping
 

@@ -56,6 +56,9 @@
                         <configuration>
                             <app>io.linguarobot.aws.cdk.maven.it.DeployBasicTestApp</app>
                             <toolkitStackName>basic-it-cdk-toolkit</toolkitStackName>
+                            <arguments>
+                                <argument>test</argument>
+                            </arguments>
                             <parameters>
                                 <Parameter>OverriddenValue</Parameter>
                             </parameters>
