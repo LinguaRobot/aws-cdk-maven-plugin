@@ -5,7 +5,7 @@
 
     <groupId>io.linguarobot</groupId>
     <artifactId>aws-cdk</artifactId>
-    <version>0.0.5</version>
+    <version>0.0.6-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>AWS CDK Maven Support</name>
