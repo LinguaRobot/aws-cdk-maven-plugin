@@ -95,7 +95,7 @@ public class CloudDefinition {
         return parameters.entrySet().stream()
                 .map(parameter -> {
                     String name = parameter.getKey();
-                    String defaultValue = (String) parameter.getValue().get("Default");
+                    Object defaultValue = parameter.getValue().get("Default");
                     return new ParameterDefinition(name, defaultValue);
                 })
                 .collect(Collectors.toMap(ParameterDefinition::getName, Function.identity()));
