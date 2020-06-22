@@ -10,9 +10,9 @@ import java.util.Objects;
 public class ParameterDefinition {
 
     private final String name;
-    private final String defaultValue;
+    private final Object defaultValue;
 
-    public ParameterDefinition(String name, @Nullable String defaultValue) {
+    public ParameterDefinition(String name, @Nullable Object defaultValue) {
         this.name = name;
         this.defaultValue = defaultValue;
     }
@@ -23,7 +23,7 @@ public class ParameterDefinition {
     }
 
     @Nullable
-    public String getDefaultValue() {
+    public Object getDefaultValue() {
         return defaultValue;
     }
 
