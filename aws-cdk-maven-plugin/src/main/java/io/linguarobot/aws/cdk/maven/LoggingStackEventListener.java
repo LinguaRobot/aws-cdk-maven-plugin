@@ -1,7 +1,6 @@
 package io.linguarobot.aws.cdk.maven;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.linguarobot.aws.cdk.maven.text.Ansi;
 import io.linguarobot.aws.cdk.maven.text.table.Cell;
 import io.linguarobot.aws.cdk.maven.text.table.Column;
@@ -16,30 +15,12 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 
 /**
  * Stack event listener that logs new stack events in form of a table.
  */
 public class LoggingStackEventListener implements Consumer<StackEvent> {
-
-    private static final Set<ResourceStatus> FAILED_RESOURCE_STATUSES = ImmutableSet.of(
-            ResourceStatus.CREATE_FAILED,
-            ResourceStatus.DELETE_FAILED,
-            ResourceStatus.UPDATE_FAILED,
-            ResourceStatus.IMPORT_FAILED,
-            ResourceStatus.IMPORT_ROLLBACK_FAILED,
-            ResourceStatus.UNKNOWN_TO_SDK_VERSION
-    );
-
-    private static final Set<ResourceStatus> IN_PROGRESS_STATUSES = ImmutableSet.of(
-            ResourceStatus.CREATE_IN_PROGRESS,
-            ResourceStatus.DELETE_IN_PROGRESS,
-            ResourceStatus.UPDATE_IN_PROGRESS,
-            ResourceStatus.IMPORT_IN_PROGRESS,
-            ResourceStatus.IMPORT_ROLLBACK_IN_PROGRESS
-    );
 
     private static final Logger logger = LoggerFactory.getLogger(LoggingStackEventListener.class);
 
@@ -61,12 +42,17 @@ public class LoggingStackEventListener implements Consumer<StackEvent> {
     @Override
     public void accept(StackEvent event) {
         Ansi.Color color;
-        if (IN_PROGRESS_STATUSES.contains(event.resourceStatus())) {
-            color = Ansi.Color.BLUE;
-        } else if (FAILED_RESOURCE_STATUSES.contains(event.resourceStatus())) {
-            color = Ansi.Color.RED;
+        if (event.resourceStatus() == ResourceStatus.UNKNOWN_TO_SDK_VERSION) {
+            color = Ansi.Color.BLACK;
         } else {
-            color = Ansi.Color.GREEN;
+            String status = event.resourceStatus().toString();
+            if (status.endsWith("_IN_PROGRESS")) {
+                color = Ansi.Color.BLUE;
+            } else if (status.endsWith("_FAILED")) {
+                color = Ansi.Color.RED;
+            } else {
+                color = Ansi.Color.GREEN;
+            }
         }
 
         Cell statusReason = Optional.ofNullable(event.resourceStatusReason())
