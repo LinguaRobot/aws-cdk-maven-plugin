@@ -1,40 +1,13 @@
 package io.linguarobot.aws.cdk.maven;
 
-import com.google.common.collect.ImmutableSet;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
-import software.amazon.awssdk.services.cloudformation.model.Capability;
-import software.amazon.awssdk.services.cloudformation.model.CloudFormationException;
-import software.amazon.awssdk.services.cloudformation.model.CreateStackRequest;
-import software.amazon.awssdk.services.cloudformation.model.CreateStackResponse;
-import software.amazon.awssdk.services.cloudformation.model.DeleteStackRequest;
-import software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsRequest;
-import software.amazon.awssdk.services.cloudformation.model.DescribeStackEventsResponse;
-import software.amazon.awssdk.services.cloudformation.model.DescribeStacksRequest;
-import software.amazon.awssdk.services.cloudformation.model.Output;
-import software.amazon.awssdk.services.cloudformation.model.Parameter;
 import software.amazon.awssdk.services.cloudformation.model.Stack;
-import software.amazon.awssdk.services.cloudformation.model.StackEvent;
-import software.amazon.awssdk.services.cloudformation.model.StackStatus;
-import software.amazon.awssdk.services.cloudformation.model.UpdateStackRequest;
-import software.amazon.awssdk.services.cloudformation.model.UpdateStackResponse;
+import software.amazon.awssdk.services.cloudformation.model.*;
 
 import javax.annotation.Nullable;
 import java.time.Duration;
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -43,32 +16,6 @@ import java.util.stream.Stream;
 public class Stacks {
 
     private static final ScheduledExecutorService SCHEDULER = new ScheduledThreadPoolExecutor(0);
-
-    private static final Set<StackStatus> IN_PROGRESS_STATUSES = ImmutableSet.<StackStatus>builder()
-            .add(StackStatus.CREATE_IN_PROGRESS)
-            .add(StackStatus.DELETE_IN_PROGRESS)
-            .add(StackStatus.REVIEW_IN_PROGRESS)
-            .add(StackStatus.ROLLBACK_IN_PROGRESS)
-            .add(StackStatus.UPDATE_COMPLETE_CLEANUP_IN_PROGRESS)
-            .add(StackStatus.UPDATE_IN_PROGRESS)
-            .add(StackStatus.UPDATE_ROLLBACK_IN_PROGRESS)
-            .add(StackStatus.IMPORT_IN_PROGRESS)
-            .add(StackStatus.IMPORT_ROLLBACK_IN_PROGRESS)
-            .build();
-
-    private static final Set<StackStatus> FAILED_STATUSES = ImmutableSet.<StackStatus>builder()
-            .add(StackStatus.CREATE_FAILED)
-            .add(StackStatus.DELETE_FAILED)
-            .add(StackStatus.ROLLBACK_FAILED)
-            .add(StackStatus.UPDATE_ROLLBACK_FAILED)
-            .add(StackStatus.IMPORT_ROLLBACK_FAILED)
-            .build();
-
-    private static final Set<StackStatus> ROLLED_BACK_STATUSES = ImmutableSet.<StackStatus>builder()
-            .add(StackStatus.ROLLBACK_COMPLETE)
-            .add(StackStatus.UPDATE_ROLLBACK_COMPLETE)
-            .add(StackStatus.IMPORT_ROLLBACK_COMPLETE)
-            .build();
 
     private static final Capability[] CAPABILITIES =
             new Capability[]{Capability.CAPABILITY_IAM, Capability.CAPABILITY_NAMED_IAM, Capability.CAPABILITY_AUTO_EXPAND};
@@ -163,15 +110,15 @@ public class Stacks {
     }
 
     public static boolean isInProgress(Stack stack) {
-        return IN_PROGRESS_STATUSES.contains(stack.stackStatus());
+        return stack.stackStatus().toString().endsWith("_IN_PROGRESS");
     }
 
     public static boolean isFailed(Stack stack) {
-        return FAILED_STATUSES.contains(stack.stackStatus());
+        return stack.stackStatus().toString().endsWith("_FAILED");
     }
 
     public static boolean isRolledBack(Stack stack) {
-        return ROLLED_BACK_STATUSES.contains(stack.stackStatus());
+        return stack.stackStatus().toString().endsWith("_ROLLBACK_COMPLETE");
     }
 
     public static Stack awaitCompletion(CloudFormationClient client, Stack stack) {
