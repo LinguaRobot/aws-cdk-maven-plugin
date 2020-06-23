@@ -118,7 +118,7 @@ public class Stacks {
     }
 
     public static boolean isRolledBack(Stack stack) {
-        return stack.stackStatus().toString().endsWith("_ROLLBACK_COMPLETE");
+        return stack.stackStatus() == StackStatus.ROLLBACK_COMPLETE || stack.stackStatus().toString().endsWith("_ROLLBACK_COMPLETE");
     }
 
     public static Stack awaitCompletion(CloudFormationClient client, Stack stack) {
