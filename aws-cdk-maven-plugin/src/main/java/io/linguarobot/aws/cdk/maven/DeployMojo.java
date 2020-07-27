@@ -10,18 +10,16 @@ import org.apache.maven.project.MavenProject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Deploys the synthesized templates to the AWS.
  */
 @Mojo(name = "deploy", defaultPhase = LifecyclePhase.DEPLOY)
-public class DeployMojo extends AbstractCdkMojo {
+public class DeployMojo extends AbstractCloudActionMojo {
 
     private static final Logger logger = LoggerFactory.getLogger(DeployMojo.class);
 
@@ -35,7 +33,7 @@ public class DeployMojo extends AbstractCdkMojo {
     private String toolkitStackName;
 
     /**
-     * Stacks to be deployed. By default, all the stacks will be deployed.
+     * Stacks to be deployed. By default, all the stacks defined in the cloud application will be deployed.
      */
     @Parameter
     private Set<String> stacks;
@@ -48,21 +46,14 @@ public class DeployMojo extends AbstractCdkMojo {
     private Map<String, String> parameters;
 
     @Override
-    public void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
-        if (!Files.exists(cloudAssemblyDirectory)) {
-            throw new CdkPluginException("The cloud assembly directory " + cloudAssemblyDirectory + " doesn't exist. " +
-                    "Did you forget to add 'synth' goal to the execution?");
-        }
-
-        CloudDefinition cloudDefinition = CloudDefinition.create(cloudAssemblyDirectory);
-        if (this.stacks != null && logger.isWarnEnabled()) {
-            Set<String> stackNames = cloudDefinition.getStacks().stream()
-                    .map(StackDefinition::getStackName)
-                    .collect(Collectors.toSet());
-            this.stacks.stream()
-                    .filter(s -> !stackNames.contains(s))
-                    .forEach(missingStack -> logger.warn("The stack '{}' can't be deployed as there's no stack with " +
-                            "such name defined in your CDK application", missingStack));
+    public void execute(CloudDefinition cloudDefinition, EnvironmentResolver environmentResolver) {
+        if (stacks != null && logger.isWarnEnabled()) {
+            Set<String> undefinedStacks = new HashSet<>(stacks);
+            cloudDefinition.getStacks().forEach(stack -> undefinedStacks.remove(stack.getStackName()));
+            if (!undefinedStacks.isEmpty()) {
+                logger.warn("The following stacks are not defined in the cloud application and can not be deployed: {}",
+                        String.join(", ", undefinedStacks));
+            }
         }
 
         ProcessRunner processRunner = new DefaultProcessRunner(project.getBasedir());
@@ -76,8 +67,8 @@ public class DeployMojo extends AbstractCdkMojo {
                     DockerImageAssetPublisher dockerImagePublisher = new DockerImageAssetPublisher(resolvedEnvironment, processRunner);
                     FileAssetPublisher filePublisher = new FileAssetPublisher(resolvedEnvironment);
                     ToolkitConfiguration toolkitConfiguration = new ToolkitConfiguration(toolkitStackName);
-                    return new StackDeployer(cloudAssemblyDirectory, resolvedEnvironment, toolkitConfiguration,
-                            filePublisher, dockerImagePublisher);
+                    return new StackDeployer(cloudDefinition.getCloudAssemblyDirectory(), resolvedEnvironment,
+                            toolkitConfiguration, filePublisher, dockerImagePublisher);
                 });
 
                 if (!stack.getResources().isEmpty()) {

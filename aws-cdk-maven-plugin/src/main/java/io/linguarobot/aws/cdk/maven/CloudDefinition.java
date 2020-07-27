@@ -20,10 +20,12 @@ import java.util.stream.Collectors;
 
 public class CloudDefinition {
 
+    private final Path cloudAssemblyDirectory;
     private final List<StackDefinition> stacks;
 
-    private CloudDefinition(List<StackDefinition> stacks) {
-        this.stacks = stacks;
+    private CloudDefinition(Path cloudAssemblyDirectory, List<StackDefinition> stacks) {
+        this.cloudAssemblyDirectory = cloudAssemblyDirectory;
+        this.stacks = ImmutableList.copyOf(stacks);
     }
 
     /**
@@ -35,6 +37,11 @@ public class CloudDefinition {
     @Nonnull
     public List<StackDefinition> getStacks() {
         return stacks;
+    }
+
+    @Nonnull
+    public Path getCloudAssemblyDirectory() {
+        return cloudAssemblyDirectory;
     }
 
     @Override
@@ -90,9 +97,9 @@ public class CloudDefinition {
                 .collect(Collectors.toMap(StackDefinition::getStackName, Function.identity()));
 
         Set<String> visited = new HashSet<>();
-        List<StackDefinition> orderedStacks = new ArrayList<>();
-        stacks.keySet().forEach(stackName -> sortTopologically(stackName, stacks, visited, orderedStacks::add));
-        return new CloudDefinition(ImmutableList.copyOf(orderedStacks));
+        List<StackDefinition> sortedStacks = new ArrayList<>();
+        stacks.keySet().forEach(stackName -> sortTopologically(stackName, stacks, visited, sortedStacks::add));
+        return new CloudDefinition(cloudAssemblyDirectory, sortedStacks);
     }
 
     private static void sortTopologically(String stackName,

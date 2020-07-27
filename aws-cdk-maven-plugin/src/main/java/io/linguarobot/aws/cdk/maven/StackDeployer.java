@@ -300,8 +300,12 @@ public class StackDeployer {
     public Optional<Stack> destroy(StackDefinition stackDefinition) {
         Stack stack = Stacks.findStack(client, stackDefinition.getStackName()).orElse(null);
         if (stack != null && stack.stackStatus() != StackStatus.DELETE_COMPLETE) {
-            logger.info("Destroying '{}' stack", stackDefinition.getStackName());
-            stack = Stacks.deleteStack(client, stack.stackId());
+            logger.info("The stack '${} is being deleted, awaiting until the operation is completed", stackDefinition.getStackName());
+            stack = awaitCompletion(Stacks.deleteStack(client, stack.stackId()));
+            if (stack.stackStatus() != StackStatus.DELETE_COMPLETE) {
+                throw new CdkPluginException("The deletion of '" + stackDefinition.getStackName() + "' stack has failed: " + stack.stackStatus());
+            }
+            logger.info("The stack '{}' has been successfully deleted", stack.stackName());
         } else {
             logger.warn("The generated template for the stack '{}' doesn't have any resources defined. The deployment " +
                     "will be skipped", stackDefinition.getStackName());
