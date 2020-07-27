@@ -14,7 +14,6 @@ import software.amazon.awssdk.services.cloudformation.model.StackStatus;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -25,7 +24,7 @@ import java.util.stream.Stream;
  * Deploys toolkit stacks required by the CDK application.
  */
 @Mojo(name = "bootstrap", defaultPhase = LifecyclePhase.DEPLOY)
-public class BootstrapMojo extends AbstractCdkMojo {
+public class BootstrapMojo extends AbstractCloudActionMojo {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapMojo.class);
 
@@ -47,13 +46,7 @@ public class BootstrapMojo extends AbstractCdkMojo {
     private Set<String> stacks;
 
     @Override
-    public void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
-        if (!Files.exists(cloudAssemblyDirectory)) {
-            throw new CdkPluginException("The cloud assembly directory " + cloudAssemblyDirectory + " doesn't exist. " +
-                    "Did you forget to add 'synth' goal to the execution?");
-        }
-
-        CloudDefinition cloudDefinition = CloudDefinition.create(cloudAssemblyDirectory);
+    public void execute(CloudDefinition cloudDefinition, EnvironmentResolver environmentResolver) {
         Map<String, Integer> environments = cloudDefinition.getStacks().stream()
                 .filter(stack -> this.stacks == null || this.stacks.contains(stack.getStackName()))
                 .filter(this::isBootstrapRequired)
