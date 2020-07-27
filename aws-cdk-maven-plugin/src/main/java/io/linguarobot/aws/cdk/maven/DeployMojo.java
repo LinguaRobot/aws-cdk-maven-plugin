@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -65,26 +65,28 @@ public class DeployMojo extends AbstractCdkMojo {
                             "such name defined in your CDK application", missingStack));
         }
 
-        Map<String, List<StackDefinition>> stacks = cloudDefinition.getStacks().stream()
-                .filter(stack -> this.stacks == null || this.stacks.contains(stack.getStackName()))
-                .collect(Collectors.groupingBy(StackDefinition::getEnvironment));
         ProcessRunner processRunner = new DefaultProcessRunner(project.getBasedir());
-        stacks.forEach((environment, environmentStacks) -> {
-            ResolvedEnvironment resolvedEnvironment = environmentResolver.resolve(environment);
-            DockerImageAssetPublisher dockerImagePublisher = new DockerImageAssetPublisher(resolvedEnvironment, processRunner);
-            FileAssetPublisher filePublisher = new FileAssetPublisher(resolvedEnvironment);
-            ToolkitConfiguration toolkitConfiguration = new ToolkitConfiguration(toolkitStackName);
-            StackDeployer stackDeployer = new StackDeployer(cloudAssemblyDirectory, resolvedEnvironment,
-                    toolkitConfiguration, filePublisher, dockerImagePublisher);
-            environmentStacks.forEach(stack -> {
-                if (!stack.getResources().isEmpty()) {
-                    stackDeployer.deploy(stack, parameters != null ? parameters : ImmutableMap.of());
-                } else {
-                    stackDeployer.destroy(stack);
-                }
-            });
+        Map<String, StackDeployer> deployers = new HashMap<>();
 
-        });
+
+        for (StackDefinition stack : cloudDefinition.getStacks()) {
+            if (this.stacks == null || this.stacks.contains(stack.getStackName())) {
+                StackDeployer deployer = deployers.computeIfAbsent(stack.getEnvironment(), environment -> {
+                    ResolvedEnvironment resolvedEnvironment = environmentResolver.resolve(environment);
+                    DockerImageAssetPublisher dockerImagePublisher = new DockerImageAssetPublisher(resolvedEnvironment, processRunner);
+                    FileAssetPublisher filePublisher = new FileAssetPublisher(resolvedEnvironment);
+                    ToolkitConfiguration toolkitConfiguration = new ToolkitConfiguration(toolkitStackName);
+                    return new StackDeployer(cloudAssemblyDirectory, resolvedEnvironment, toolkitConfiguration,
+                            filePublisher, dockerImagePublisher);
+                });
+
+                if (!stack.getResources().isEmpty()) {
+                    deployer.deploy(stack, parameters != null ? parameters : ImmutableMap.of());
+                } else {
+                    deployer.destroy(stack);
+                }
+            }
+        }
     }
 
 }

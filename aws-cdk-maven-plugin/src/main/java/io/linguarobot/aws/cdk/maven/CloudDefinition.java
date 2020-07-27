@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr353.JSR353Module;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.linguarobot.aws.cdk.*;
 import org.apache.commons.lang3.ObjectUtils;
@@ -13,6 +14,7 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,12 @@ public class CloudDefinition {
         this.stacks = stacks;
     }
 
+    /**
+     * Returns the stacks defined in the cloud application. The stacks are sorted to correspond the deployment order,
+     * i.e. the stack that should be deployed first will be first in the returned {@code List}.
+     *
+     * @return the stacks defined in the cloud application
+     */
     @Nonnull
     public List<StackDefinition> getStacks() {
         return stacks;
@@ -49,7 +57,7 @@ public class CloudDefinition {
             throw new CdkPluginException("Failed to read the cloud manifest", e);
         }
 
-        return manifest.getArtifacts().entrySet().stream()
+        Map<String, StackDefinition> stacks = manifest.getArtifacts().entrySet().stream()
                 .filter(artifact -> artifact.getValue().getType() == ArtifactType.STACK)
                 .map(artifact -> {
                     String artifactId = artifact.getKey();
@@ -76,9 +84,31 @@ public class CloudDefinition {
                             .withParameterValues(stackArtifact.getProperties().getParameters())
                             .withAssets(assets)
                             .withResources(resources)
+                            .withDependencies(stackArtifact.getDependencies())
                             .build();
                 })
-                .collect(Collectors.collectingAndThen(Collectors.toList(), stacks -> new CloudDefinition(Collections.unmodifiableList(stacks))));
+                .collect(Collectors.toMap(StackDefinition::getStackName, Function.identity()));
+
+        Set<String> visited = new HashSet<>();
+        List<StackDefinition> orderedStacks = new ArrayList<>();
+        stacks.keySet().forEach(stackName -> sortTopologically(stackName, stacks, visited, orderedStacks::add));
+        return new CloudDefinition(ImmutableList.copyOf(orderedStacks));
+    }
+
+    private static void sortTopologically(String stackName,
+                                          Map<String, StackDefinition> stacks,
+                                          Set<String> visited,
+                                          Consumer<StackDefinition> consumer) {
+        if (!visited.contains(stackName)) {
+            visited.add(stackName);
+            StackDefinition definition = stacks.get(stackName);
+            if (definition != null) {
+                for (String dependency : definition.getDependencies()) {
+                    sortTopologically(dependency, stacks, visited, consumer);
+                }
+                consumer.accept(definition);
+            }
+        }
     }
 
     private static Map<String, Object> readTemplate(Path template) {

@@ -38,13 +38,17 @@ public class StackDefinition {
     @Nonnull
     private final Map<String, Map<String, Object>> resources;
 
+    @Nonnull
+    private final List<String> dependencies;
+
     private StackDefinition(@Nonnull String stackName,
                             @Nonnull Path templateFile,
                             @Nonnull String environment,
                             @Nullable Integer requiredToolkitStackVersion,
                             @Nullable Map<String, ParameterDefinition> parameters,
                             @Nullable Map<String, String> parameterValues, List<AssetMetadata> assets,
-                            @Nullable Map<String, Map<String, Object>> resources) {
+                            @Nullable Map<String, Map<String, Object>> resources,
+                            @Nullable List<String> dependencies) {
         this.stackName = Objects.requireNonNull(stackName, "Stack name can't be null");
         this.templateFile = Objects.requireNonNull(templateFile, "Template file can't be null");
         this.environment = Objects.requireNonNull(environment, "Environment can't be null");
@@ -53,6 +57,7 @@ public class StackDefinition {
         this.parameterValues = parameterValues != null ? ImmutableMap.copyOf(parameterValues) : ImmutableMap.of();
         this.assets = assets != null ? ImmutableList.copyOf(assets) : ImmutableList.of();
         this.resources = resources != null ? ImmutableMap.copyOf(resources) : ImmutableMap.of();
+        this.dependencies = dependencies != null ? ImmutableList.copyOf(dependencies) : ImmutableList.of();
     }
 
     @Nonnull
@@ -95,6 +100,11 @@ public class StackDefinition {
         return resources;
     }
 
+    @Nonnull
+    public List<String> getDependencies() {
+        return dependencies;
+    }
+
     @Override
     public String toString() {
         return "StackDefinition{" +
@@ -123,6 +133,7 @@ public class StackDefinition {
         private Map<String, String> parameterValues;
         private List<AssetMetadata> assets;
         private Map<String, Map<String, Object>> resources;
+        private List<String> dependencies;
 
         private Builder() {
         }
@@ -167,8 +178,14 @@ public class StackDefinition {
             return this;
         }
 
+        public Builder withDependencies(@Nullable List<String> dependencies) {
+            this.dependencies = dependencies;
+            return this;
+        }
+
         public StackDefinition build() {
-            return new StackDefinition(stackName, templateFile, environment, requiredToolkitStackVersion, parameters, parameterValues, assets, resources);
+            return new StackDefinition(stackName, templateFile, environment, requiredToolkitStackVersion, parameters,
+                    parameterValues, assets, resources, dependencies);
         }
     }
 }
