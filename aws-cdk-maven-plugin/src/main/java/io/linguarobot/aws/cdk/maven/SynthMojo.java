@@ -5,14 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import io.linguarobot.aws.cdk.CloudManifest;
-import io.linguarobot.aws.cdk.maven.context.AmiContextProvider;
-import io.linguarobot.aws.cdk.maven.context.AvailabilityZonesContextProvider;
-import io.linguarobot.aws.cdk.maven.context.AwsClientProvider;
-import io.linguarobot.aws.cdk.maven.context.AwsClientProviderBuilder;
-import io.linguarobot.aws.cdk.maven.context.ContextProvider;
-import io.linguarobot.aws.cdk.maven.context.HostedZoneContextProvider;
-import io.linguarobot.aws.cdk.maven.context.SsmContextProvider;
-import io.linguarobot.aws.cdk.maven.context.VpcNetworkContextProvider;
+import io.linguarobot.aws.cdk.maven.context.*;
 import io.linguarobot.aws.cdk.maven.node.*;
 import io.linguarobot.aws.cdk.maven.process.DefaultProcessRunner;
 import io.linguarobot.aws.cdk.maven.process.ProcessContext;
@@ -25,36 +18,19 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.FileSet;
 import org.apache.maven.plugin.ContextEnabled;
-import org.apache.maven.plugins.annotations.Component;
-import org.apache.maven.plugins.annotations.InstantiationStrategy;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.plugins.annotations.*;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.toolchain.ToolchainManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
-import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.regions.providers.AwsRegionProvider;
-import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.route53.Route53Client;
 import software.amazon.awssdk.services.ssm.SsmClient;
 
-import javax.annotation.Nullable;
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
-import javax.json.JsonWriter;
-import javax.json.JsonWriterFactory;
+import javax.json.*;
 import javax.json.stream.JsonGenerator;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -344,41 +320,6 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
         }
 
         return nodeInstaller;
-    }
-
-    /**
-     * Returns an {@code Optional} with the region inferred using {@link DefaultAwsRegionProviderChain} or an empty
-     * {@code Optional} if the information about the region is not available.
-     */
-    private Optional<Region> getDefaultRegion(@Nullable String profile) {
-        AwsRegionProvider regionProvider = Optional.ofNullable(profile)
-                .map(profileName -> DefaultAwsRegionProviderChain.builder()
-                        .profileName(profileName)
-                        .build())
-                .orElseGet(DefaultAwsRegionProviderChain::new);
-        try {
-            return Optional.of(regionProvider.getRegion());
-        } catch (SdkClientException e) {
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Returns an {@code Optional} with the credentials inferred using {@link DefaultCredentialsProvider} or an empty
-     * {@code Optional} if the credentials are not available.
-     */
-    private Optional<AwsCredentials> getDefaultCredentials(@Nullable String profile) {
-        AwsCredentialsProvider credentialsProvider = Optional.ofNullable(profile)
-                .map(profileName -> DefaultCredentialsProvider.builder()
-                        .profileName(profileName)
-                        .build())
-                .orElseGet(DefaultCredentialsProvider::create);
-
-        try {
-            return Optional.of(credentialsProvider.resolveCredentials());
-        } catch (SdkClientException e) {
-            return Optional.empty();
-        }
     }
 
 }
