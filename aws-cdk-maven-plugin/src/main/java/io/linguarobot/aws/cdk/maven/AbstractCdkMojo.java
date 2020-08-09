@@ -8,6 +8,8 @@ import io.linguarobot.aws.cdk.maven.api.AccountCredentialsProvider;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProviderChain;
@@ -33,6 +35,8 @@ import java.util.Optional;
  */
 public abstract class AbstractCdkMojo extends AbstractMojo {
 
+    private static final Logger logger = LoggerFactory.getLogger(AbstractCdkMojo.class);
+
     static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL)
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -50,14 +54,24 @@ public abstract class AbstractCdkMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.directory}/cdk.out")
     private File cloudAssemblyDirectory;
 
+    /**
+     * Enables/disables an execution.
+     */
+    @Parameter(defaultValue = "false")
+    private boolean skip;
+
     @Override
     public void execute() throws MojoExecutionException {
-        try {
-            execute(cloudAssemblyDirectory.toPath(), createEnvironmentResolver());
-        } catch (CdkPluginException e) {
-            throw new MojoExecutionException(e.getMessage(), e.getCause());
-        } catch (Exception e) {
-            throw new MojoExecutionException(e.getMessage(), e);
+        if (!skip) {
+            try {
+                execute(cloudAssemblyDirectory.toPath(), createEnvironmentResolver());
+            } catch (CdkPluginException e) {
+                throw new MojoExecutionException(e.getMessage(), e.getCause());
+            } catch (Exception e) {
+                throw new MojoExecutionException(e.getMessage(), e);
+            }
+        } else {
+            logger.debug("The execution is configured to be skipped");
         }
     }
 
