@@ -109,10 +109,11 @@ public class MyApp {
 
 | Parameter | Type | Since | Description |
 | --- | --- | --- | --- |
-| `<app>` | `String` | `0.0.1` | Full class name of the CDK app class defining the cloud infrastructure. |
-| `<profile>` | `String` | `0.0.1` | A profile that will be used to find credentials and region. |
-| `<cloudAssemblyDirectory>` | `String` | `0.0.1` | A directory where the cloud assembly will be synthesized. |
-| `<arguments>` | `List<String>` | `0.0.5` | A list of arguments to be passed to the CDK application. |
+| `<app>` <br/> `-Daws.cdk.app` | `String` | `0.0.1` | Full class name of the CDK app class defining the cloud infrastructure. |
+| `<profile>` <br/> `-Daws.cdk.profile` | `String` | `0.0.1` | A profile that will be used to find credentials and region. |
+| `<cloudAssemblyDirectory>` <br/> `-Daws.cdk.cloud.assembly.directory` | `String` | `0.0.1` | A directory where the cloud assembly will be synthesized. |
+| `<arguments>` <br/> `-Daws.cdk.arguments` | `List<String>` | `0.0.5` | A list of arguments to be passed to the CDK application. |
+| `<skip>` <br/> `-Daws.cdk.skip` | `boolean` | `0.0.7` | Enables/disables the execution of the goal. | 
 
 ### Bootstrapping
 
@@ -130,10 +131,11 @@ environment (account/region) by running `cdk bootstrap` command (please refer to
 
 | Parameter | Type | Since | Description |
 | --- | --- | --- | --- |
-| `<profile>` | `String` | `0.0.1` | A profile that will be used to find credentials and region. |
-| `<cloudAssemblyDirectory>` | `String` | `0.0.1` | A cloud assembly directory with the deployment artifacts (`target/cdk.out` by default). |
-| `<toolkitStackName>` | `String` | `0.0.1` | The name of the CDK toolkit stack (`CDKToolkit` by default). |
-| `<stacks>` | `List<String>` | `0.0.4` | Stacks to deploy. The plugin will create the toolkit stacks only for those stacks that are being deployed (by default, all the stacks defined in your application will be deployed). |
+| `<profile>` <br/> `-Daws.cdk.profile` | `String` | `0.0.1` | A profile that will be used to find credentials and region. |
+| `<cloudAssemblyDirectory>` <br/> `-Daws.cdk.cloud.assembly.directory` | `String` | `0.0.1` | A cloud assembly directory with the deployment artifacts (`target/cdk.out` by default). |
+| `<toolkitStackName>` <br/> `-Daws.cdk.toolkit.stack.name` | `String` | `0.0.1` | The name of the CDK toolkit stack (`CDKToolkit` by default). |
+| `<stacks>` <br/> `-Daws.cdk.stacks` | `List<String>` | `0.0.4` | Stacks to deploy. The plugin will create the toolkit stacks only for those stacks that are being deployed (by default, all the stacks defined in your application will be deployed). |
+| `<skip>` <br/> `-Daws.cdk.skip` | `boolean` | `0.0.7` | Enables/disables the execution of the goal. |
 
 ### Deployment
 
@@ -144,11 +146,12 @@ attached to the `deploy` Maven phase).
 
 | Parameter | Type | Since | Description |
 | --- | --- | --- | --- |
-| `<profile>` | `String` | `0.0.1` | A profile that will be used to find credentials and region. |
-| `<cloudAssemblyDirectory>` | `String` | `0.0.1` | A cloud assembly directory with the deployment artifacts (`target/cdk.out` by default). |
-| `<toolkitStackName>` | `String` | `0.0.1` | The name of the CDK toolkit stack to use (`CDKToolkit` is used by default). |
-| `<stacks>` | `List<String>` | `0.0.4` | Stacks to deploy. By default, all the stacks defined in your application will be deployed. |
+| `<profile>` <br/> `-Daws.cdk.profile` | `String` | `0.0.1` | A profile that will be used to find credentials and region. |
+| `<cloudAssemblyDirectory>` <br/> `-Daws.cdk.cloud.assembly.directory` | `String` | `0.0.1` | A cloud assembly directory with the deployment artifacts (`target/cdk.out` by default). |
+| `<toolkitStackName>` <br/> `-Daws.cdk.toolkit.stack.name` | `String` | `0.0.1` | The name of the CDK toolkit stack to use (`CDKToolkit` is used by default). |
+| `<stacks>` <br/> `-Daws.cdk.stacks` | `List<String>` | `0.0.4` | Stacks to deploy. By default, all the stacks defined in your application will be deployed. |
 | `<parameters>` | `Map<String, String>` | `0.0.4` | Input parameters for the stacks. For the new stacks, all the parameters without a default value must be specified. In the case of an update, existing values will be reused. |
+| `<skip>` <br/> `-Daws.cdk.skip` | `boolean` | `0.0.7` | Enables/disables the execution of the goal. |
 
 
 [1]: https://aws.amazon.com/cdk/
