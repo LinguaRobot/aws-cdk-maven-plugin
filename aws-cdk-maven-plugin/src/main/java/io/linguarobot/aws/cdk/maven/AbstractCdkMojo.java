@@ -41,13 +41,13 @@ public abstract class AbstractCdkMojo extends AbstractMojo {
     /**
      * A profile that will be used while looking for credentials and region.
      */
-    @Parameter
+    @Parameter(property = "aws.cdk.profile")
     private String profile;
 
     /**
      * A cloud assembly directory.
      */
-    @Parameter(defaultValue = "${project.build.directory}/cdk.out")
+    @Parameter(property = "aws.cdk.cloud.assembly.directory", defaultValue = "${project.build.directory}/cdk.out")
     private File cloudAssemblyDirectory;
 
     @Override

@@ -23,12 +23,12 @@ public class DestroyMojo extends AbstractCloudActionMojo {
     /**
      * Stacks to be destroyed. By default, all the stacks defined in the cloud application will be deleted.
      */
-    @Parameter
+    @Parameter(property = "aws.cdk.stacks")
     private Set<String> stacks;
 
     @Override
     public void execute(CloudDefinition cloudDefinition, EnvironmentResolver environmentResolver) {
-        if (stacks != null && logger.isWarnEnabled()) {
+        if (stacks != null && !stacks.isEmpty() && logger.isWarnEnabled()) {
             Set<String> undefinedStacks = new HashSet<>(stacks);
             cloudDefinition.getStacks().forEach(stack -> undefinedStacks.remove(stack.getStackName()));
             if (!undefinedStacks.isEmpty()) {
@@ -41,7 +41,7 @@ public class DestroyMojo extends AbstractCloudActionMojo {
         IntStream.range(0, cloudDefinition.getStacks().size())
                 .map(i -> cloudDefinition.getStacks().size() - 1 - i)
                 .mapToObj(cloudDefinition.getStacks()::get)
-                .filter(stack -> this.stacks == null || this.stacks.contains(stack.getStackName()))
+                .filter(stack -> this.stacks == null || this.stacks.isEmpty() || this.stacks.contains(stack.getStackName()))
                 .forEach(stack -> {
                     CloudFormationClient client = clients.computeIfAbsent(stack.getEnvironment(), environment -> {
                         ResolvedEnvironment resolvedEnvironment = environmentResolver.resolve(environment);

@@ -29,13 +29,13 @@ public class DeployMojo extends AbstractCloudActionMojo {
     /**
      * The name of the CDK toolkit stack
      */
-    @Parameter(defaultValue = "CDKToolkit")
+    @Parameter(property = "aws.cdk.toolkit.stack.name", defaultValue = "CDKToolkit")
     private String toolkitStackName;
 
     /**
      * Stacks to be deployed. By default, all the stacks defined in the cloud application will be deployed.
      */
-    @Parameter
+    @Parameter(property = "aws.cdk.stacks")
     private Set<String> stacks;
 
     /**
@@ -47,7 +47,7 @@ public class DeployMojo extends AbstractCloudActionMojo {
 
     @Override
     public void execute(CloudDefinition cloudDefinition, EnvironmentResolver environmentResolver) {
-        if (stacks != null && logger.isWarnEnabled()) {
+        if (stacks != null && !stacks.isEmpty() && logger.isWarnEnabled()) {
             Set<String> undefinedStacks = new HashSet<>(stacks);
             cloudDefinition.getStacks().forEach(stack -> undefinedStacks.remove(stack.getStackName()));
             if (!undefinedStacks.isEmpty()) {
@@ -61,7 +61,7 @@ public class DeployMojo extends AbstractCloudActionMojo {
 
 
         for (StackDefinition stack : cloudDefinition.getStacks()) {
-            if (this.stacks == null || this.stacks.contains(stack.getStackName())) {
+            if (this.stacks == null || this.stacks.isEmpty() || this.stacks.contains(stack.getStackName())) {
                 StackDeployer deployer = deployers.computeIfAbsent(stack.getEnvironment(), environment -> {
                     ResolvedEnvironment resolvedEnvironment = environmentResolver.resolve(environment);
                     DockerImageAssetPublisher dockerImagePublisher = new DockerImageAssetPublisher(resolvedEnvironment, processRunner);

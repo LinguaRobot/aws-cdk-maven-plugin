@@ -36,19 +36,19 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
     /**
      * The name of the CDK toolkit stack.
      */
-    @Parameter(defaultValue = "CDKToolkit")
+    @Parameter(property = "aws.cdk.toolkit.stack.name", defaultValue = "CDKToolkit")
     private String toolkitStackName;
 
     /**
      * Stacks, for which bootstrapping will be performed if it's required.
      */
-    @Parameter
+    @Parameter(property = "aws.cdk.stacks")
     private Set<String> stacks;
 
     @Override
     public void execute(CloudDefinition cloudDefinition, EnvironmentResolver environmentResolver) {
         Map<String, Integer> environments = cloudDefinition.getStacks().stream()
-                .filter(stack -> this.stacks == null || this.stacks.contains(stack.getStackName()))
+                .filter(stack -> this.stacks == null || this.stacks.isEmpty() || this.stacks.contains(stack.getStackName()))
                 .filter(this::isBootstrapRequired)
                 .collect(Collectors.groupingBy(
                         StackDefinition::getEnvironment,

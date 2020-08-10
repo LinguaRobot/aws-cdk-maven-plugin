@@ -115,13 +115,13 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
      * define the constructs associated with it and call {@link software.amazon.awscdk.core.App#synth()} method in order
      * to produce a cloud assembly with CloudFormation templates.
      */
-    @Parameter(required = true)
+    @Parameter(property = "aws.cdk.app", required = true)
     private String app;
 
     /**
      * Arguments to be passed to the application.
      */
-    @Parameter
+    @Parameter(property = "aws.cdk.arguments")
     private List<String> arguments;
 
     private ProcessRunner processRunner;
