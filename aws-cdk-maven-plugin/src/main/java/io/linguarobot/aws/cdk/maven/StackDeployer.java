@@ -1,5 +1,6 @@
 package io.linguarobot.aws.cdk.maven;
 
+import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
 import io.linguarobot.aws.cdk.AssetMetadata;
 import io.linguarobot.aws.cdk.ContainerAssetData;
@@ -93,8 +94,11 @@ public class StackDeployer {
                 deployedStack.parameters().forEach(p -> stackParameters.put(p.parameterKey(), ParameterValue.unchanged()));
             }
         }
-        stackDefinition.getParameterValues().forEach((name, value) -> stackParameters.put(name, ParameterValue.value(value)));
-        parameters.forEach((name, value) -> stackParameters.put(name, ParameterValue.value(value)));
+
+        Streams.concat(stackDefinition.getParameterValues().entrySet().stream(), parameters.entrySet().stream())
+                .filter(parameter -> parameter.getKey() != null && parameter.getValue() != null)
+                .forEach(parameter -> stackParameters.put(parameter.getKey(), ParameterValue.value(parameter.getValue())));
+
         Toolkit toolkit = null;
         List<Runnable> publishmentTasks = new ArrayList<>();
         for (AssetMetadata asset : stackDefinition.getAssets()) {
