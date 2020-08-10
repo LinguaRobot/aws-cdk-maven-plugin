@@ -71,7 +71,7 @@
                             </stacks>
                             <toolkitStackName>stacks-parameter-cdk-toolkit-dev</toolkitStackName>
                             <parameters>
-                                <UserTableName>user_dev</UserTableName>
+                                <UserTableName>stacks_parameter_it_user_dev</UserTableName>
                             </parameters>
                         </configuration>
                     </execution>
@@ -87,7 +87,7 @@
                             </stacks>
                             <toolkitStackName>stacks-parameter-cdk-toolkit-prod</toolkitStackName>
                             <parameters>
-                                <UserTableName>user</UserTableName>
+                                <UserTableName>stacks_parameter_it_user</UserTableName>
                             </parameters>
                         </configuration>
                     </execution>

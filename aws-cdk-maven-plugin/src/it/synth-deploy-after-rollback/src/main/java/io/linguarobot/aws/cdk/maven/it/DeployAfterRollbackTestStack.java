@@ -16,7 +16,7 @@ public class DeployAfterRollbackTestStack extends Stack {
 
         Table.Builder.create(this, "UserTable")
                 .removalPolicy(RemovalPolicy.DESTROY)
-                .tableName("user")
+                .tableName("deploy_after_rollback_it_user")
                 .billingMode(BillingMode.PAY_PER_REQUEST)
                 .partitionKey(Attribute.builder()
                         .name("id")
