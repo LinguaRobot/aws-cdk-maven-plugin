@@ -6,7 +6,7 @@
       "Type": "AWS::DynamoDB::Table",
       "DeletionPolicy": "Delete",
       "Properties": {
-        "TableName": "user",
+        "TableName": "deploy_after_rollback_it_user",
         "AttributeDefinitions": [
           {
             "AttributeName": "id",
