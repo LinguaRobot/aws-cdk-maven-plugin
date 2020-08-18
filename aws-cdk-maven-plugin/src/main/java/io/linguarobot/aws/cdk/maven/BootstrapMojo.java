@@ -5,6 +5,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
@@ -32,6 +33,9 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
     private static final int MAX_TOOLKIT_STACK_VERSION = 1;
     private static final int DEFAULT_BOOTSTRAP_STACK_VERSION = getDefaultBootstrapStackVersion();
     private static final String BOOTSTRAP_VERSION_OUTPUT = "BootstrapVersion";
+
+    @Parameter(defaultValue = "${settings}", required = true, readonly = true)
+    private Settings settings;
 
     /**
      * The name of the CDK toolkit stack.
@@ -200,7 +204,7 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
 
     private Stack awaitCompletion(CloudFormationClient client, Stack stack) {
         Stack completedStack;
-        if (logger.isInfoEnabled()) {
+        if (logger.isInfoEnabled() && settings.isInteractiveMode()) {
             completedStack = Stacks.awaitCompletion(client, stack, new LoggingStackEventListener());
         } else {
             completedStack = Stacks.awaitCompletion(client, stack);

@@ -2,6 +2,7 @@ package io.linguarobot.aws.cdk.maven;
 
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -19,6 +20,9 @@ import java.util.stream.IntStream;
 public class DestroyMojo extends AbstractCloudActionMojo {
 
     private static final Logger logger = LoggerFactory.getLogger(DestroyMojo.class);
+
+    @Parameter(defaultValue = "${settings}", required = true, readonly = true)
+    private Settings settings;
 
     /**
      * Stacks to be destroyed. By default, all the stacks defined in the cloud application will be deleted.
@@ -62,8 +66,8 @@ public class DestroyMojo extends AbstractCloudActionMojo {
                 .orElse(null);
         if (stack != null) {
             stack = Stacks.deleteStack(client, stack.stackName());
-            if (logger.isInfoEnabled()) {
-                logger.info("The stack '{}' is being deleted, waiting until the operation is completed", stack.stackName());
+            logger.info("The stack '{}' is being deleted, waiting until the operation is completed", stack.stackName());
+            if (logger.isInfoEnabled() && settings.isInteractiveMode()) {
                 stack = Stacks.awaitCompletion(client, stack, new LoggingStackEventListener());
             } else {
                 stack = Stacks.awaitCompletion(client, stack);
