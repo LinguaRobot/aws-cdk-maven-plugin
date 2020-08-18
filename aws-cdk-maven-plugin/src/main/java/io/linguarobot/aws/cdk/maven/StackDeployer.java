@@ -7,6 +7,7 @@ import io.linguarobot.aws.cdk.ContainerAssetData;
 import io.linguarobot.aws.cdk.ContainerImageAssetMetadata;
 import io.linguarobot.aws.cdk.FileAssetData;
 import io.linguarobot.aws.cdk.FileAssetMetadata;
+import org.apache.maven.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -52,17 +53,20 @@ public class StackDeployer {
     private final ToolkitConfiguration toolkitConfiguration;
     private final FileAssetPublisher fileAssetPublisher;
     private final DockerImageAssetPublisher dockerImagePublisher;
+    private final Settings settings;
 
     public StackDeployer(Path cloudAssemblyDirectory,
                          ResolvedEnvironment environment,
                          ToolkitConfiguration toolkitConfiguration,
                          FileAssetPublisher fileAssetPublisher,
-                         DockerImageAssetPublisher dockerImagePublisher) {
+                         DockerImageAssetPublisher dockerImagePublisher,
+                         Settings settings) {
         this.cloudAssemblyDirectory = cloudAssemblyDirectory;
         this.environment = environment;
         this.toolkitConfiguration = toolkitConfiguration;
         this.fileAssetPublisher = fileAssetPublisher;
         this.dockerImagePublisher = dockerImagePublisher;
+        this.settings = settings;
         this.client = CloudFormationClient.builder()
                 .region(environment.getRegion())
                 .credentialsProvider(StaticCredentialsProvider.create(environment.getCredentials()))
@@ -424,7 +428,7 @@ public class StackDeployer {
 
     private Stack awaitCompletion(Stack stack) {
         Stack completedStack;
-        if (logger.isInfoEnabled()) {
+        if (logger.isInfoEnabled() && settings.isInteractiveMode()) {
             completedStack = Stacks.awaitCompletion(client, stack, new LoggingStackEventListener());
         } else {
             completedStack = Stacks.awaitCompletion(client, stack);
