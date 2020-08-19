@@ -89,13 +89,6 @@ public class DockerImageAssetPublisher {
         }
     }
 
-    private void login() {
-        AuthorizationData authorizationData = getAuthorizationData()
-                .orElseThrow(() -> new CdkPluginException("Unable to retrieve authorization token from ECR"));
-
-        processRunner.run(toDockerLoginCommand(authorizationData));
-    }
-
     private List<String> toBuildCommand(ImageBuild build) {
         List<String> buildCommand = new ArrayList<>();
         buildCommand.add("docker");
@@ -111,10 +104,8 @@ public class DockerImageAssetPublisher {
             buildCommand.add("--target");
             buildCommand.add(build.getTarget());
         }
-        if (build.getDockerfile() != null) {
-            buildCommand.add("--file");
-            buildCommand.add(build.getContextDirectory().relativize(build.getDockerfile()).toString());
-        }
+        buildCommand.add("--file");
+        buildCommand.add(build.getDockerfile().toString());
         buildCommand.add(build.getContextDirectory().toString());
 
         return buildCommand;
