@@ -59,7 +59,7 @@ jobs:
         with:
           maven-version: 3.5.0
       - name: 'Run integration tests'
-        run: 'mvn --no-transfer-progress --batch-mode clean verify -DskipUTs=true -DskipITs=false -D"invoker.test"=${{ matrix.test }}'
+        run: 'mvn --batch-mode clean verify -DskipUTs=true -DskipITs=false -D"invoker.test"=${{ matrix.test }}'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}

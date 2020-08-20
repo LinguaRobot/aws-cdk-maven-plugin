@@ -26,7 +26,6 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         run: |
           mvn \
-            --no-transfer-progress \
             --batch-mode \
             -Prelease \
             -DskipUTs=true \
