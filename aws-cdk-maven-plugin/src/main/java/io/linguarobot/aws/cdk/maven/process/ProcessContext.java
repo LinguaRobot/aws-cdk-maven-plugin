@@ -48,7 +48,6 @@ public class ProcessContext {
         private OutputStream output;
 
         private Builder() {
-            this.environment = ImmutableMap.of();
             this.output = System.out;
         }
 
