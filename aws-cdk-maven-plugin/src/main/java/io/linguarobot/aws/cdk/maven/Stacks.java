@@ -32,14 +32,14 @@ public class Stacks {
     }
 
     public static Stack createStack(CloudFormationClient client, String stackName, TemplateRef template) {
-        return createStack(client, stackName, template, Collections.emptyMap());
+        return createStack(client, stackName, template, Collections.emptyMap(), Collections.emptyMap());
     }
-
 
     public static Stack createStack(CloudFormationClient client,
                                     String stackName,
                                     TemplateRef template,
-                                    Map<String, ParameterValue> parameters) {
+                                    Map<String, ParameterValue> parameters,
+                                    Map<String, String> tags) {
         Objects.requireNonNull(client, "CloudFormation client can't be null");
         Objects.requireNonNull(stackName, "stack name can't be null");
         Objects.requireNonNull(template, "template reference can't be null");
@@ -47,6 +47,7 @@ public class Stacks {
                 .stackName(stackName)
                 .templateBody(template.getBody())
                 .templateURL(template.getUrl())
+                .tags(buildTags(tags))
                 .parameters(parameters != null ? buildParameters(parameters) : Collections.emptyList())
                 .capabilities(CAPABILITIES)
                 .build();
@@ -59,6 +60,14 @@ public class Stacks {
                                     String stackName,
                                     TemplateRef template,
                                     Map<String, ParameterValue> parameters) {
+        return updateStack(client, stackName, template, parameters, Collections.emptyMap());
+    }
+
+    public static Stack updateStack(CloudFormationClient client,
+                                    String stackName,
+                                    TemplateRef template,
+                                    Map<String, ParameterValue> parameters,
+                                    Map<String, String> tags) {
         Objects.requireNonNull(client, "CloudFormation client can't be null");
         Objects.requireNonNull(stackName, "stack name can't be null");
         Objects.requireNonNull(template, "template reference can't be null");
@@ -66,12 +75,22 @@ public class Stacks {
                 .stackName(stackName)
                 .templateBody(template.getBody())
                 .templateURL(template.getUrl())
+                .tags(buildTags(tags))
                 .parameters(parameters != null ? buildParameters(parameters) : Collections.emptyList())
                 .capabilities(CAPABILITIES)
                 .build();
 
         UpdateStackResponse response = client.updateStack(request);
         return getStack(client, response.stackId());
+    }
+
+    private static List<Tag> buildTags(Map<String, String> tags) {
+        return tags.entrySet().stream()
+                .map(tag -> Tag.builder()
+                        .key(tag.getKey())
+                        .value(tag.getValue())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private static List<Parameter> buildParameters(Map<String, ParameterValue> parameters) {

@@ -73,7 +73,7 @@ public class StackDeployer {
                 .build();
     }
 
-    public Stack deploy(StackDefinition stackDefinition, Map<String, String> parameters) {
+    public Stack deploy(StackDefinition stackDefinition, Map<String, String> parameters, Map<String, String> tags) {
         String stackName = stackDefinition.getStackName();
         logger.info("Deploying '{}' stack", stackName);
 
@@ -179,7 +179,7 @@ public class StackDeployer {
         Stack stack;
         if (deployedStack != null && deployedStack.stackStatus() != StackStatus.DELETE_COMPLETE) {
             try {
-                stack = Stacks.updateStack(client, stackName, templateRef, effectiveParameters);
+                stack = Stacks.updateStack(client, stackName, templateRef, effectiveParameters, tags);
             } catch (CloudFormationException e) {
                 AwsErrorDetails errorDetails = e.awsErrorDetails();
                 if (!errorDetails.errorCode().equals("ValidationError") ||
@@ -191,7 +191,7 @@ public class StackDeployer {
                 updated = false;
             }
         } else {
-            stack = Stacks.createStack(client, stackName, templateRef, effectiveParameters);
+            stack = Stacks.createStack(client, stackName, templateRef, effectiveParameters, tags);
         }
 
         if (updated) {
