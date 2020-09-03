@@ -25,6 +25,12 @@ try {
             .orElse(null)
     assert parameterValue == "OverriddenValue"
 
+    def tagValue = stack.tags().stream()
+            .filter({ tag -> tag.key() == "testTag"})
+            .map({ tag -> tag.value() })
+            .findAny()
+            .orElse(null)
+    assert tagValue == "testTagValue"
     def stage = Stacks.findOutput(stack, "Stage")
             .map {output -> output.outputValue() }
             .orElse(null)

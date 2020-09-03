@@ -49,6 +49,12 @@ public class DeployMojo extends AbstractCloudActionMojo {
     @Parameter
     private Map<String, String> parameters;
 
+    /**
+     * Tags that will be added to the stacks.
+     */
+    @Parameter
+    private Map<String, String> tags;
+
     @Override
     public void execute(CloudDefinition cloudDefinition, EnvironmentResolver environmentResolver) {
         if (stacks != null && !stacks.isEmpty() && logger.isWarnEnabled()) {
@@ -76,7 +82,7 @@ public class DeployMojo extends AbstractCloudActionMojo {
                 });
 
                 if (!stack.getResources().isEmpty()) {
-                    deployer.deploy(stack, parameters != null ? parameters : ImmutableMap.of());
+                    deployer.deploy(stack, parameters != null ? parameters : ImmutableMap.of(), tags != null ? tags : ImmutableMap.of());
                 } else {
                     deployer.destroy(stack);
                 }
