@@ -13,7 +13,7 @@ jobs:
         id: vars
         run: echo ::set-output name=run-url::https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
       - name: 'Post a comment with the status link'
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v1.4.5
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
           repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
