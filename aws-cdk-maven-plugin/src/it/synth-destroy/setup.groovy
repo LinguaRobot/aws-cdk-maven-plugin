@@ -1,5 +1,5 @@
-import io.linguarobot.aws.cdk.maven.Stacks
-import io.linguarobot.aws.cdk.maven.TemplateRef
+import io.dataspray.aws.cdk.maven.Stacks
+import io.dataspray.aws.cdk.maven.TemplateRef
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient
 import software.amazon.awssdk.services.cloudformation.model.StackStatus
 

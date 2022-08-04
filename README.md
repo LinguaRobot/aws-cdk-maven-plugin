@@ -1,5 +1,5 @@
 # AWS CDK Maven Plugin
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.linguarobot/aws-cdk-maven-plugin/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/io.linguarobot/aws-cdk-maven-plugin)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.dataspray/aws-cdk-maven-plugin/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/io.dataspray/aws-cdk-maven-plugin)
 
 The AWS CDK Maven plugin produces and deploys CloudFormation templates based on your cloud infrastructure defined by 
 means of [CDK][1]. The goal of the project is to improve the experience of Java developers while working with CDK by 
@@ -26,9 +26,9 @@ Add the plugin to your Maven project:
 
 ```xml
 <plugin>
-    <groupId>io.linguarobot</groupId>
+    <groupId>io.dataspray</groupId>
     <artifactId>aws-cdk-maven-plugin</artifactId>
-    <!-- Please use the latest available version: https://search.maven.org/artifact/io.linguarobot/aws-cdk-maven-plugin -->
+    <!-- Please use the latest available version: https://search.maven.org/artifact/io.dataspray/aws-cdk-maven-plugin -->
     <version>${cdk.maven.plugin.version}</version>
     <executions>
         <execution>
@@ -159,4 +159,4 @@ attached to the `deploy` Maven phase).
 [3]: https://docs.aws.amazon.com/cdk/latest/guide/tools.html#cli
 [4]: https://aws.amazon.com/cloudformation/
 [5]: https://docs.aws.amazon.com/cdk/latest/guide/constructs.html
-[6]: https://github.com/LinguaRobot/aws-cdk-maven-plugin-example
+[6]: https://github.com/datasprayio/aws-cdk-maven-plugin-example

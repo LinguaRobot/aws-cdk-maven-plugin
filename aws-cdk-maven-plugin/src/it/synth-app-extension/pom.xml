@@ -3,7 +3,7 @@
          xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.linguarobot</groupId>
+    <groupId>io.dataspray</groupId>
     <artifactId>synth-app-extension-it</artifactId>
     <version>1.0.0</version>
 
@@ -43,7 +43,7 @@
                             <goal>synth</goal>
                         </goals>
                         <configuration>
-                            <app>io.linguarobot.aws.cdk.maven.it.SynthAppExtensionTestApp</app>
+                            <app>io.dataspray.aws.cdk.maven.it.SynthAppExtensionTestApp</app>
                         </configuration>
                     </execution>
                 </executions>

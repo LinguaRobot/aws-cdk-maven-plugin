@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.linguarobot</groupId>
+        <groupId>io.dataspray</groupId>
         <artifactId>aws-cdk</artifactId>
         <version>0.0.9-SNAPSHOT</version>
     </parent>

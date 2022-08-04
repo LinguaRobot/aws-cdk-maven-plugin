@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.linguarobot</groupId>
+        <groupId>io.dataspray</groupId>
         <artifactId>synth-deploy-ecs-service-it</artifactId>
         <version>1.0.0</version>
     </parent>
@@ -45,7 +45,7 @@
                         <configuration>
                             <artifactItems>
                                 <artifactItem>
-                                    <groupId>io.linguarobot</groupId>
+                                    <groupId>io.dataspray</groupId>
                                     <artifactId>synth-deploy-ecs-service-it-rest-service</artifactId>
                                     <version>${project.version}</version>
                                     <outputDirectory>${project.build.directory}/docker-context</outputDirectory>
@@ -67,7 +67,7 @@
                             <goal>deploy</goal>
                         </goals>
                         <configuration>
-                            <app>io.linguarobot.aws.cdk.maven.it.EcsServiceTestApp</app>
+                            <app>io.dataspray.aws.cdk.maven.it.EcsServiceTestApp</app>
                             <toolkitStackName>ecs-service-it-cdk-toolkit</toolkitStackName>
                         </configuration>
                     </execution>

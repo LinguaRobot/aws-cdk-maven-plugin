@@ -3,14 +3,14 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.linguarobot</groupId>
+    <groupId>io.dataspray</groupId>
     <artifactId>aws-cdk</artifactId>
     <version>0.0.9-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>AWS CDK Maven Support</name>
     <description>A set of tools to interact with CDK application by means of Maven</description>
-    <url>https://github.com/LinguaRobot/aws-cdk-maven-plugin</url>
+    <url>https://github.com/datasprayio/aws-cdk-maven-plugin</url>
 
     <licenses>
         <license>
@@ -25,12 +25,16 @@
             <name>Roman Kishchenko</name>
             <email>rkishchenko@linguarobot.io</email>
         </developer>
+        <developer>
+            <name>Matus Faro</name>
+            <email>matus@dataspray.io</email>
+        </developer>
     </developers>
 
     <scm>
-        <connection>scm:git:ssh://git@github.com/LinguaRobot/aws-cdk-maven-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/LinguaRobot/aws-cdk-maven-plugin.git</developerConnection>
-        <url>https://github.com/LinguaRobot/aws-cdk-maven-plugin</url>
+        <connection>scm:git:ssh://git@github.com/datasprayio/aws-cdk-maven-plugin.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/datasprayio/aws-cdk-maven-plugin.git</developerConnection>
+        <url>https://github.com/datasprayio/aws-cdk-maven-plugin</url>
         <tag>HEAD</tag>
     </scm>
 
@@ -66,22 +70,22 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>io.linguarobot</groupId>
+                <groupId>io.dataspray</groupId>
                 <artifactId>aws-cdk-maven-plugin-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.linguarobot</groupId>
+                <groupId>io.dataspray</groupId>
                 <artifactId>aws-cdk-maven-plugin</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.linguarobot</groupId>
+                <groupId>io.dataspray</groupId>
                 <artifactId>aws-cdk-maven-plugin-runtime</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.linguarobot</groupId>
+                <groupId>io.dataspray</groupId>
                 <artifactId>aws-cdk-cloud-manifest</artifactId>
                 <version>${project.version}</version>
             </dependency>
