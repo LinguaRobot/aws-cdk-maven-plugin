@@ -5,6 +5,10 @@ The AWS CDK Maven plugin produces and deploys CloudFormation templates based on 
 means of [CDK][1]. The goal of the project is to improve the experience of Java developers while working with CDK by 
 eliminating the need for installing [Node.js][2] and interacting with the CDK application by means of [CDK Toolkit][3].
 
+## Migrating from LinguaRobot
+
+This fork is a continuation of the work done by Roman Kishchenko [LinguaRobot/aws-cdk-maven-plugin](https://github.com/LinguaRobot/aws-cdk-maven-plugin). Starting from version `0.0.9`, all you have to do is change the groupId of your plugin to `io.dataspray` and this plugin will be pulled from Maven Central.
+
 ## Prerequisites
 
 The plugin requires Java >= 8 and Maven >= 3.5.
