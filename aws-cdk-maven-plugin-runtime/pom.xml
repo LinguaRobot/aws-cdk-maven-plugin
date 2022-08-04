@@ -11,7 +11,7 @@
 
     <artifactId>aws-cdk-maven-plugin-runtime</artifactId>
 
-    <name>AWS CDK Maven Plugn Runtime</name>
+    <name>AWS CDK Maven Plugin Runtime</name>
     <description>Classes that are added to the classpath of the CDK application during synthesis.</description>
 
 </project>
