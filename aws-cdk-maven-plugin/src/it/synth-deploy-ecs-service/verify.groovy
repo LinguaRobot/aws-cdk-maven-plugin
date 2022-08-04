@@ -56,11 +56,7 @@ try {
             })
 
     def ecrClient = EcrClient.create()
-    try {
-        deleteRepository(ecrClient, "aws-cdk/assets")
-    } catch (Exception ignored) {
-        assert false
-    }
+    deleteRepository(ecrClient, "aws-cdk/assets")
 }
 
 def deleteRepository(EcrClient client, String repositoryName) {

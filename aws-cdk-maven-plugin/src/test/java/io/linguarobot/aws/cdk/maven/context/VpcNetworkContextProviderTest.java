@@ -55,7 +55,9 @@ public class VpcNetworkContextProviderTest {
                                 .add("region", "someRegion")
                                 .add("account", "someAccount")
                                 .build(),
-                        DescribeVpcsRequest.builder().build()
+                        DescribeVpcsRequest.builder()
+                                .filters(ImmutableList.of())
+                                .build()
                 },
                 {
                         Json.createObjectBuilder()
