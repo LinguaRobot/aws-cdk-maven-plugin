@@ -4,7 +4,7 @@
 
     <groupId>io.dataspray</groupId>
     <artifactId>aws-cdk</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>AWS CDK Maven Support</name>
@@ -34,7 +34,7 @@
         <connection>scm:git:git@github.com:datasprayio/aws-cdk-maven-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:datasprayio/aws-cdk-maven-plugin.git</developerConnection>
         <url>https://github.com/datasprayio/aws-cdk-maven-plugin</url>
-        <tag>1.0.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <modules>
