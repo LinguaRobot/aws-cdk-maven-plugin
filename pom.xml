@@ -47,7 +47,7 @@
         <maven.version>3.8.6</maven.version>
         <maven.tools.version>3.6.4</maven.tools.version>
         <aws.sdk.version>2.17.246</aws.sdk.version>
-        <aws.cdk.version>1.68.0</aws.cdk.version>
+        <aws.cdk.version>1.167.0</aws.cdk.version>
 
         <skipITs>false</skipITs>
     </properties>
