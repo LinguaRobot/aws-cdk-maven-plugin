@@ -7,7 +7,7 @@ eliminating the need for installing [Node.js][2] and interacting with the CDK ap
 
 ## Migrating from LinguaRobot
 
-This fork is a continuation of the work done by Roman Kishchenko [LinguaRobot/aws-cdk-maven-plugin](https://github.com/LinguaRobot/aws-cdk-maven-plugin). Starting from version `0.0.9`, all you have to do is change the groupId of your plugin to `io.dataspray` and this plugin will be pulled from Maven Central.
+This fork is a continuation of the work done by Roman Kishchenko [LinguaRobot/aws-cdk-maven-plugin](https://github.com/LinguaRobot/aws-cdk-maven-plugin). Starting from version `1.0.0`, all you have to do is change the groupId of your plugin to `io.dataspray` and this plugin will be pulled from Maven Central.
 
 ## Prerequisites
 

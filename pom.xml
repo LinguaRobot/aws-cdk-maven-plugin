@@ -32,8 +32,8 @@
     </developers>
 
     <scm>
-        <connection>scm:git:ssh://git@github.com/datasprayio/aws-cdk-maven-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/datasprayio/aws-cdk-maven-plugin.git</developerConnection>
+        <connection>scm:git:git@github.com:datasprayio/aws-cdk-maven-plugin.git</connection>
+        <developerConnection>scm:git:git@github.com:datasprayio/aws-cdk-maven-plugin.git</developerConnection>
         <url>https://github.com/datasprayio/aws-cdk-maven-plugin</url>
         <tag>HEAD</tag>
     </scm>
@@ -52,7 +52,7 @@
         <maven.tools.version>3.6.4</maven.tools.version>
         <aws.sdk.version>2.15.7 </aws.sdk.version>
         <aws.cdk.version>1.167.0</aws.cdk.version>
-
+        <githubReleaseVersion>${project.version}</githubReleaseVersion>
         <skipITs>false</skipITs>
     </properties>
 
@@ -176,6 +176,30 @@
     </dependencyManagement>
 
     <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.0.0-M4</version>
+                <configuration>
+                    <releaseProfiles>release</releaseProfiles>
+                    <signTag>true</signTag>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                    <scmCommentPrefix>[release]</scmCommentPrefix>
+                </configuration>
+            </plugin>
+            <plugin>
+                <inherited>false</inherited>
+                <groupId>de.jutzig</groupId>
+                <artifactId>github-release-plugin</artifactId>
+                <version>1.4.0</version>
+                <configuration>
+                    <releaseName>${githubReleaseVersion}</releaseName>
+                    <tag>${githubReleaseVersion}</tag>
+                    <artifact><!-- Do not include default artifact --></artifact>
+                </configuration>
+            </plugin>
+        </plugins>
         <pluginManagement>
             <plugins>
                 <plugin>
