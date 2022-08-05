@@ -5,6 +5,11 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    ignore:
+      - dependency-name: "org.apache.maven:maven-plugin-api"
+      - dependency-name: "org.apache.maven:maven-core"
+      - dependency-name: "software.amazon.awssdk:bom"
+      - dependency-name: "org.testng:testng"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
