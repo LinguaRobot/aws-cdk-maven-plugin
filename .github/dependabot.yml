@@ -10,6 +10,7 @@ updates:
       - dependency-name: "org.apache.maven:maven-core"
       - dependency-name: "software.amazon.awssdk:bom"
       - dependency-name: "org.testng:testng"
+      - dependency-name: "com.fasterxml.jackson:jackson-bom"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
