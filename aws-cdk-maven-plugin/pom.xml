@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.dataspray</groupId>
         <artifactId>aws-cdk</artifactId>
-        <version>1.0.1-SNAPSHOT</version>
+        <version>1.0.2</version>
     </parent>
 
     <artifactId>aws-cdk-maven-plugin</artifactId>
