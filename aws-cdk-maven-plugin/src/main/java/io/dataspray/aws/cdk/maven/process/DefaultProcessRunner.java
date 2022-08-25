@@ -6,6 +6,8 @@ import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.Executor;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.exec.ShutdownHookProcessDestroyer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +17,8 @@ import java.util.Map;
 import java.util.stream.IntStream;
 
 public class DefaultProcessRunner implements ProcessRunner {
+
+    private static final Logger logger = LoggerFactory.getLogger(DefaultProcessRunner.class);
 
     private final File defaultWorkingDirectory;
     private final Executor executor;
@@ -41,6 +45,7 @@ public class DefaultProcessRunner implements ProcessRunner {
         executor.setStreamHandler(new PumpStreamHandler(output));
 
         Map<String, String> environment = processContext.getEnvironment().orElse(null);
+        logger.debug("Running {} with env {}", commandLine, environment);
         try {
             return executor.execute(commandLine, environment);
         } catch (ExecuteException e) {

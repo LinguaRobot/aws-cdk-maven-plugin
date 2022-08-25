@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -84,6 +85,10 @@ public class CloudManifest {
             throw new IllegalArgumentException("The manifest file '" + cloudAssemblyDirectory + "' is missing");
         }
 
-        return OBJECT_MAPPER.readValue(manifest.toFile(), CloudManifest.class);
+        try {
+            return OBJECT_MAPPER.readValue(manifest.toFile(), CloudManifest.class);
+        } catch (FileNotFoundException ex) {
+            throw new IOException("Manifest not found, did you forget to call app.synth()?", ex);
+        }
     }
 }
