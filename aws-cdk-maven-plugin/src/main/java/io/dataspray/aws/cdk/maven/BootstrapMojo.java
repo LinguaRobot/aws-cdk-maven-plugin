@@ -79,14 +79,6 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
         });
     }
 
-    private boolean hasFileAssets(StackDefinition stack) {
-        return stack.getAssets().stream()
-                .anyMatch(assetMetadata -> {
-                    String packaging = assetMetadata.getPackaging();
-                    return packaging.equals("zip") || packaging.equals("file");
-                });
-    }
-
     private void bootstrap(ResolvedEnvironment environment, int version) {
         CloudFormationClient client = CloudFormationClient.builder()
                 .region(environment.getRegion())
