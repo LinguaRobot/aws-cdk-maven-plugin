@@ -1,6 +1,7 @@
 package io.dataspray.aws.cdk.maven;
 
 import com.google.common.io.CharStreams;
+import com.google.common.io.Resources;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -17,6 +18,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -30,7 +32,14 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
     private static final Logger logger = LoggerFactory.getLogger(BootstrapMojo.class);
 
     private static final int MAX_TEMPLATE_SIZE = 50 * 1024;
-    private static final int MAX_TOOLKIT_STACK_VERSION = 1;
+    /**
+     * Corresponds to the version defined in bootstrap-template.yaml
+     *
+     * To upgrade:
+     * - Pull latest bootstrap-template.yaml from https://raw.githubusercontent.com/aws/aws-cdk/main/packages/aws-cdk/lib/api/bootstrap/bootstrap-template.yaml
+     * - Update this version to match the newly updated template
+     */
+    private static final int MAX_TOOLKIT_STACK_VERSION = 14;
     private static final int DEFAULT_BOOTSTRAP_STACK_VERSION = getDefaultBootstrapStackVersion();
     private static final String BOOTSTRAP_VERSION_OUTPUT = "BootstrapVersion";
 
@@ -141,7 +150,7 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
         if (toolkitStack == null || toolkitStack.stackStatus() == StackStatus.DELETE_COMPLETE || toolkitStackVersion < version) {
             TemplateRef toolkitTemplate;
             try {
-                toolkitTemplate = getToolkitTemplateRef(version)
+                toolkitTemplate = getToolkitTemplateRef()
                         .orElseThrow(() -> BootstrapException.deploymentError(toolkitStackName, environment)
                                 .withCause("The required bootstrap stack version " + version + " is not supported by " +
                                         "the plugin. Please try to update the plugin version in order to fix the problem")
@@ -186,10 +195,9 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
         }
     }
 
-    private Optional<TemplateRef> getToolkitTemplateRef(int version) throws IOException {
+    private Optional<TemplateRef> getToolkitTemplateRef() throws IOException {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String templateFileName = String.format("bootstrap-template-v%d.yaml", version);
-        InputStream inputStream = classLoader.getResourceAsStream(templateFileName);
+        InputStream inputStream = classLoader.getResourceAsStream("bootstrap-template.yaml");
         if (inputStream == null) {
             return Optional.empty();
         }
