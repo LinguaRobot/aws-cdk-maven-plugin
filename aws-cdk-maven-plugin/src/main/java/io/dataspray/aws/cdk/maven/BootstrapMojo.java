@@ -1,7 +1,6 @@
 package io.dataspray.aws.cdk.maven;
 
 import com.google.common.io.CharStreams;
-import com.google.common.io.Resources;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -15,10 +14,8 @@ import software.amazon.awssdk.services.cloudformation.model.Stack;
 import software.amazon.awssdk.services.cloudformation.model.StackStatus;
 
 import java.io.*;
-import java.nio.file.Files;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,7 +28,6 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapMojo.class);
 
-    private static final int MAX_TEMPLATE_SIZE = 50 * 1024;
     /**
      * Corresponds to the version defined in bootstrap-template.yaml
      *
@@ -39,7 +35,7 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
      * - Pull latest bootstrap-template.yaml from https://raw.githubusercontent.com/aws/aws-cdk/main/packages/aws-cdk/lib/api/bootstrap/bootstrap-template.yaml
      * - Update this version to match the newly updated template
      */
-    private static final int MAX_TOOLKIT_STACK_VERSION = 14;
+    private static final int TOOLKIT_STACK_VERSION = 14;
     private static final int DEFAULT_BOOTSTRAP_STACK_VERSION = getDefaultBootstrapStackVersion();
     private static final String BOOTSTRAP_VERSION_OUTPUT = "BootstrapVersion";
 
@@ -62,7 +58,6 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
     public void execute(CloudDefinition cloudDefinition, EnvironmentResolver environmentResolver) {
         Map<String, Integer> environments = cloudDefinition.getStacks().stream()
                 .filter(stack -> this.stacks == null || this.stacks.isEmpty() || this.stacks.contains(stack.getStackName()))
-                .filter(this::isBootstrapRequired)
                 .collect(Collectors.groupingBy(
                         StackDefinition::getEnvironment,
                         Collectors.reducing(
@@ -74,7 +69,7 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
 
         environments.forEach((environment, version) -> {
             ResolvedEnvironment resolvedEnvironment = environmentResolver.resolve(environment);
-            if (version > MAX_TOOLKIT_STACK_VERSION) {
+            if (version > TOOLKIT_STACK_VERSION) {
                 throw BootstrapException.deploymentError(toolkitStackName, resolvedEnvironment)
                         .withCause("One of the stacks requires toolkit stack version " + version + " which is not " +
                                 "supported by the plugin. Please try to update the plugin version in order to fix the problem")
@@ -82,18 +77,6 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
             }
             bootstrap(resolvedEnvironment, version);
         });
-    }
-
-    private boolean isBootstrapRequired(StackDefinition stack) {
-        if (hasFileAssets(stack)) {
-            return true;
-        }
-
-        try {
-            return Files.size(stack.getTemplateFile()) > MAX_TEMPLATE_SIZE;
-        } catch (IOException e) {
-            throw new CdkPluginException("Failed to determine template file size", e);
-        }
     }
 
     private boolean hasFileAssets(StackDefinition stack) {
@@ -140,7 +123,7 @@ public class BootstrapMojo extends AbstractCloudActionMojo {
                 .findAny()
                 .orElse(version);
 
-        if (toolkitStackVersion > MAX_TOOLKIT_STACK_VERSION) {
+        if (toolkitStackVersion > TOOLKIT_STACK_VERSION) {
             throw BootstrapException.invalidStateError(toolkitStackName, environment)
                     .withCause("The deployed toolkit stack version is newer than the latest supported by the plugin." +
                             " Please try to update the plugin version in order to fix the problem")

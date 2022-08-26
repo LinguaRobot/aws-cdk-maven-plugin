@@ -121,13 +121,13 @@ public class MyApp {
 
 ### Bootstrapping
 
-Some CDK applications may require a "toolkit stack" that includes the resources required for the application operation. 
+CDK applications require a "toolkit stack" that includes the resources required for the application operation. 
 For example, the toolkit stack may include S3 bucket used to store templates and assets for the deployment.
 
-The plugin is able to detect if a stack requires a toolkit stack and if it does, the plugin will automatically deploy it 
+The plugin will automatically deploy the toolkit stack 
 (or update if needed) during the execution of `bootstrap` goal (provided that the required toolkit stack version wasn't 
 already deployed). You may also choose to omit `bootstrap` goal if you don't want to rely on the plugin and control this 
-process by yourself or just want to make sure that the toolkit stack is not created by a mistake. If you choose to omit 
+process by yourself. If you choose to omit 
 `bootstrap` goal, you will need to install the toolkit stack the first time you deploy an AWS CDK application into an 
 environment (account/region) by running `cdk bootstrap` command (please refer to [AWS CDK Toolkit][3] for the details).
 
