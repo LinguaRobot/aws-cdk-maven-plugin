@@ -65,8 +65,6 @@ public abstract class AbstractCdkMojo extends AbstractMojo {
         if (!skip) {
             try {
                 execute(cloudAssemblyDirectory.toPath(), createEnvironmentResolver());
-            } catch (CdkPluginException e) {
-                throw new MojoExecutionException(e.getMessage(), e.getCause());
             } catch (Exception e) {
                 throw new MojoExecutionException(e.getMessage(), e);
             }
