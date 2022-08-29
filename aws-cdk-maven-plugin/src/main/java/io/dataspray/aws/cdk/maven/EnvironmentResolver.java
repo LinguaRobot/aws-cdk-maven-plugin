@@ -1,6 +1,8 @@
 package io.dataspray.aws.cdk.maven;
 
 import io.dataspray.aws.cdk.maven.api.AccountCredentialsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.regions.Region;
 
@@ -18,6 +20,8 @@ import javax.annotation.Nullable;
  * @see software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
  */
 public class EnvironmentResolver {
+
+    private static final Logger logger = LoggerFactory.getLogger(EnvironmentResolver.class);
 
     private static final String SCHEMA_PREFIX = "aws://";
     private static final String UNKNOWN_ACCOUNT = "unknown-account";
@@ -44,6 +48,7 @@ public class EnvironmentResolver {
      * determined or if credentials cannot be resolved for the account
      */
     public ResolvedEnvironment resolve(String environment) {
+        logger.debug("Resolving env from {}", environment);
         if (environment.startsWith(SCHEMA_PREFIX)) {
             String[] parts = environment.substring(SCHEMA_PREFIX.length()).split("/");
             if (parts.length == 2) {
@@ -66,7 +71,8 @@ public class EnvironmentResolver {
     }
 
     public ResolvedEnvironment resolveFromDestination(String destinationKey) {
-        String[] parts = destinationKey.substring(SCHEMA_PREFIX.length()).split("-", 2);
+        logger.debug("Resolving env from destination {}", destinationKey);
+        String[] parts = destinationKey.split("-", 2);
         if (parts.length == 2) {
             String account = !parts[0].equals(UNKNOWN_ACCOUNT) ? parts[0] : defaultAccount;
             Region region = (!parts[1].equals(UNKNOWN_REGION) && !parts[1].equals(CURRENT_REGION)) ? Region.of(parts[1]) : defaultRegion;

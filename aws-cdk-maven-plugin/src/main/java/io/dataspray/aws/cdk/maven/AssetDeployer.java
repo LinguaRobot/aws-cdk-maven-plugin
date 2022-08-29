@@ -18,8 +18,6 @@ import java.util.Optional;
 
 public class AssetDeployer {
 
-    private static final Logger logger = LoggerFactory.getLogger(AssetDeployer.class);
-
     private final Path cloudAssemblyDirectory;
     private final FileAssetPublisher fileAssetPublisher;
     private final DockerImageAssetPublisher dockerImagePublisher;
