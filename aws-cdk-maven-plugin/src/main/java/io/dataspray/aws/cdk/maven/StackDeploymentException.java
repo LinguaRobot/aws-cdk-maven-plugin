@@ -11,7 +11,7 @@ public class StackDeploymentException extends CdkPluginException {
     private final ResolvedEnvironment environment;
 
     protected StackDeploymentException(String stackName,
-                                       ResolvedEnvironment environment,
+                                       @Nullable ResolvedEnvironment environment,
                                        String message,
                                        @Nullable Throwable cause) {
         super(formatErrorMessage(stackName, environment, message), cause);
@@ -19,13 +19,19 @@ public class StackDeploymentException extends CdkPluginException {
         this.environment = environment;
     }
 
-    private static String formatErrorMessage(String stackName, ResolvedEnvironment environment, @Nullable String message) {
+    private static String formatErrorMessage(@Nullable String stackName, @Nullable ResolvedEnvironment environment, @Nullable String message) {
         StringBuilder errorMessage = new StringBuilder();
-        errorMessage.append("The stack '")
-                .append(stackName)
-                .append("' cannot be deployed in ")
-                .append(environment.getName())
-                .append(" environment");
+        if (stackName == null) {
+            errorMessage.append("Cannot deploy");
+        } else {
+            errorMessage.append("The stack '")
+                    .append(stackName)
+                    .append("' cannot be deployed");
+        }
+        if (environment != null) {
+            errorMessage.append(environment.getName())
+                    .append(" in environment");
+        }
         if (message != null) {
             errorMessage.append(". ").append(message);
         }
@@ -38,6 +44,14 @@ public class StackDeploymentException extends CdkPluginException {
 
     public ResolvedEnvironment getEnvironment() {
         return environment;
+    }
+
+    public static Builder builder() {
+        return new Builder(null, null);
+    }
+
+    public static Builder builder(ResolvedEnvironment environment) {
+        return new Builder(null, environment);
     }
 
     public static Builder builder(String stackName, ResolvedEnvironment environment) {

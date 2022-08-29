@@ -13,12 +13,12 @@ public final class MoreCollectors {
     }
 
     /**
-     * Returns a {@link Collector} that will sort elements of the stream before passing them to the downstream collector.
+     * Returns a {@link Collector} that will sort elements of the stream before passing them to the downstream
+     * collector.
      *
      * @param downstreamCollector a collector that will accept the sorted elements
      * @param <T> the types of the input elements
      * @param <R> the result type of the collector
-     *
      * @return a collector sorting the elements of the stream before passing them to the next, downstream collector
      */
     public static <T extends Comparable<? super T>, R> Collector<T, ?, R> sorting(Collector<T, ?, R> downstreamCollector) {
@@ -33,7 +33,6 @@ public final class MoreCollectors {
      * @param downstreamCollector a collector that will accept the sorted elements
      * @param <T> the types of the input elements
      * @param <R> the result type of the collector
-     *
      * @return a collector sorting the elements of the stream before passing them to the next, downstream collector
      */
     public static <T, R> Collector<T, ?, R> sorting(Comparator<? super T> comparator, Collector<T, ?, R> downstreamCollector) {

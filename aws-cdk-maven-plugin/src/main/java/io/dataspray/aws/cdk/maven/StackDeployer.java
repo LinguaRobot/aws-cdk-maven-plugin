@@ -2,11 +2,6 @@ package io.dataspray.aws.cdk.maven;
 
 import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
-import io.dataspray.aws.cdk.AssetMetadata;
-import io.dataspray.aws.cdk.ContainerAssetData;
-import io.dataspray.aws.cdk.ContainerImageAssetMetadata;
-import io.dataspray.aws.cdk.FileAssetData;
-import io.dataspray.aws.cdk.FileAssetMetadata;
 import org.apache.maven.settings.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,9 +20,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,13 +31,14 @@ public class StackDeployer {
 
     private static final Logger logger = LoggerFactory.getLogger(StackDeployer.class);
 
+    public static final String ZIP_PACKAGING = "zip";
+    public static final String FILE_PACKAGING = "file";
+    public static final String IMAGE_PACKAGING = "container-image";
+
     private static final String BOOTSTRAP_VERSION_OUTPUT = "BootstrapVersion";
     private static final String BUCKET_NAME_OUTPUT = "BucketName";
     private static final String BUCKET_DOMAIN_NAME_OUTPUT = "BucketDomainName";
     private static final String ASSET_PREFIX_SEPARATOR = "||";
-    private static final String ZIP_PACKAGING = "zip";
-    private static final String FILE_PACKAGING = "file";
-    private static final String IMAGE_PACKAGING = "container-image";
     private static final int MAX_TEMPLATE_SIZE = 50 * 1024;
 
     private final CloudFormationClient client;
@@ -103,53 +97,12 @@ public class StackDeployer {
                 .filter(parameter -> parameter.getKey() != null && parameter.getValue() != null)
                 .forEach(parameter -> stackParameters.put(parameter.getKey(), ParameterValue.value(parameter.getValue())));
 
-        Toolkit toolkit = null;
-        List<Runnable> publishmentTasks = new ArrayList<>();
-        for (AssetMetadata asset : stackDefinition.getAssets()) {
-            switch (asset.getPackaging()) {
-                case FILE_PACKAGING:
-                case ZIP_PACKAGING:
-                    if (toolkit == null) {
-                        toolkit = getToolkit(stackDefinition);
-                    }
-                    FileAssetMetadata fileAsset = (FileAssetMetadata) asset;
-                    String bucketName = toolkit.getBucketName();
-                    String prefix = generatePrefix(fileAsset);
-                    String filename = generateFilename(fileAsset);
-                    FileAssetData fileData = fileAsset.getData();
-                    stackParameters.put(fileData.getS3BucketParameter(), ParameterValue.value(toolkit.getBucketName()));
-                    stackParameters.put(fileData.getS3KeyParameter(), ParameterValue.value(String.join(ASSET_PREFIX_SEPARATOR, prefix, filename)));
-                    stackParameters.put(fileData.getArtifactHashParameter(), ParameterValue.value(fileAsset.getSourceHash()));
-
-                    publishmentTasks.add(() -> {
-                        Path file = cloudAssemblyDirectory.resolve(fileAsset.getPath());
-                        try {
-                            fileAssetPublisher.publish(file, prefix + filename, bucketName);
-                        } catch (IOException e) {
-                            throw StackDeploymentException.builder(stackName, environment)
-                                    .withCause("An error occurred while publishing the file asset " + file)
-                                    .withCause(e)
-                                    .build();
-                        }
-                    });
-                    break;
-                case IMAGE_PACKAGING:
-                    ContainerImageAssetMetadata imageAsset = (ContainerImageAssetMetadata) asset;
-                    publishmentTasks.add(createImagePublishmentTask(stackName, imageAsset));
-                    break;
-                default:
-                    throw StackDeploymentException.builder(stackName, environment)
-                            .withCause("The asset packaging " + asset.getPackaging() + " is not supported. You might " +
-                                    "need to update the plugin in order to support the assets of this type")
-                            .build();
-            }
-        }
 
         Map<String, ParameterValue> effectiveParameters = stackParameters.entrySet().stream()
                 .filter(parameter -> stackDefinition.getParameters().containsKey(parameter.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        TemplateRef templateRef = getTemplateRef(stackDefinition, publishmentTasks);
+        TemplateRef templateRef = getTemplateRef(stackDefinition);
 
         List<String> missingParameters = stackDefinition.getParameters().values().stream()
                 .filter(parameterDefinition -> parameterDefinition.getDefaultValue() == null)
@@ -160,18 +113,6 @@ public class StackDeployer {
         if (!missingParameters.isEmpty()) {
             throw StackDeploymentException.builder(stackName, environment)
                     .withCause("The values for the following template parameters are missing: " + String.join(", ", missingParameters))
-                    .build();
-        }
-        try {
-            publishmentTasks.forEach(Runnable::run);
-        } catch (CdkPluginException e) {
-            throw StackDeploymentException.builder(stackName, environment)
-                    .withCause(e.getMessage())
-                    .withCause(e.getCause())
-                    .build();
-        } catch (Exception e) {
-            throw StackDeploymentException.builder(stackName, environment)
-                    .withCause(e)
                     .build();
         }
 
@@ -215,53 +156,7 @@ public class StackDeployer {
         return stack;
     }
 
-    private Runnable createImagePublishmentTask(String stackName, ContainerImageAssetMetadata imageAsset) {
-        Path contextDirectory = cloudAssemblyDirectory.resolve(imageAsset.getPath());
-        if (!Files.exists(contextDirectory)) {
-            throw StackDeploymentException.builder(stackName, environment)
-                    .withCause("The Docker context directory doesn't exist: " + contextDirectory)
-                    .build();
-        }
-
-        Path dockerfilePath;
-        ContainerAssetData imageData = imageAsset.getData();
-        if (imageData.getFile() != null) {
-            dockerfilePath = contextDirectory.resolve(imageData.getFile());
-            if (!Files.exists(dockerfilePath)) {
-                throw StackDeploymentException.builder(stackName, environment)
-                        .withCause("The Dockerfile doesn't exist: " + dockerfilePath)
-                        .build();
-            }
-        } else {
-            dockerfilePath = findDockerfile(contextDirectory)
-                    .orElseThrow(() -> StackDeploymentException.builder(stackName, environment)
-                            .withCause("Unable to find Dockerfile in the context directory " + contextDirectory)
-                            .build());
-        }
-
-        return () -> {
-            String localTag = String.join("-", "cdkasset", imageAsset.getId().toLowerCase());
-            ImageBuild imageBuild = ImageBuild.builder()
-                    .withContextDirectory(contextDirectory)
-                    .withDockerfile(dockerfilePath)
-                    .withImageTag(localTag)
-                    .withArguments(imageData.getBuildArguments())
-                    .withTarget(imageData.getTarget())
-                    .build();
-            dockerImagePublisher.publish(imageData.getRepositoryName(), imageData.getImageTag(), imageBuild);
-        };
-    }
-
-    private Optional<Path> findDockerfile(Path contextDirectory) {
-        Path dockerfile = contextDirectory.resolve("Dockerfile");
-        if (!Files.exists(dockerfile)) {
-            dockerfile = contextDirectory.resolve("dockerfile");
-        }
-
-        return Optional.of(dockerfile).filter(Files::exists);
-    }
-
-    private TemplateRef getTemplateRef(StackDefinition stackDefinition, List<Runnable> deploymentTasks) {
+    private TemplateRef getTemplateRef(StackDefinition stackDefinition) {
         Path templateFile = cloudAssemblyDirectory.resolve(stackDefinition.getTemplateFile());
         TemplateRef templateRef;
         try {
@@ -288,16 +183,24 @@ public class StackDeployer {
             }
 
             String objectName = "cdk/" + stackDefinition.getStackName() + "/" + contentHash + ".json";
-            deploymentTasks.add(() -> {
-                try {
-                    fileAssetPublisher.publish(templateFile, objectName, toolkit.getBucketName());
-                } catch (IOException e) {
-                    throw StackDeploymentException.builder(stackDefinition.getStackName(), environment)
-                            .withCause("An error occurred while uploading the template file to the deployment bucket")
-                            .withCause(e)
-                            .build();
-                }
-            });
+
+            try {
+                fileAssetPublisher.publish(templateFile, objectName, toolkit.getBucketName(), environment);
+            } catch (IOException e) {
+                throw StackDeploymentException.builder(stackDefinition.getStackName(), environment)
+                        .withCause("An error occurred while uploading the template file to the deployment bucket")
+                        .withCause(e)
+                        .build();
+            } catch (CdkPluginException e) {
+                throw StackDeploymentException.builder(stackDefinition.getStackName(), environment)
+                        .withCause(e.getMessage())
+                        .withCause(e.getCause())
+                        .build();
+            } catch (Exception e) {
+                throw StackDeploymentException.builder(stackDefinition.getStackName(), environment)
+                        .withCause(e)
+                        .build();
+            }
 
             templateRef = TemplateRef.fromUrl("https://" + toolkit.getBucketDomainName() + "/" + objectName);
         }
@@ -324,31 +227,6 @@ public class StackDeployer {
 
     private String hash(File file) throws IOException {
         return com.google.common.io.Files.asByteSource(file).hash(Hashing.sha256()).toString();
-    }
-
-    private String generateFilename(FileAssetMetadata fileAsset) {
-        StringBuilder fileName = new StringBuilder();
-        fileName.append(fileAsset.getSourceHash());
-        if (fileAsset.getPackaging().equals(ZIP_PACKAGING)) {
-            fileName.append('.').append(ZIP_PACKAGING);
-        } else {
-            int extensionDelimiter = fileAsset.getPath().lastIndexOf('.');
-            if (extensionDelimiter > 0) {
-                fileName.append(fileAsset.getPath().substring(extensionDelimiter));
-            }
-        }
-
-        return fileName.toString();
-    }
-
-    private String generatePrefix(FileAssetMetadata fileAsset) {
-        StringBuilder prefix = new StringBuilder();
-        prefix.append("assets").append('/');
-        if (!fileAsset.getId().equals(fileAsset.getSourceHash())) {
-            prefix.append(fileAsset.getId()).append('/');
-        }
-
-        return prefix.toString();
     }
 
     private Optional<String> readTemplateBody(Path template, long limit) throws IOException {

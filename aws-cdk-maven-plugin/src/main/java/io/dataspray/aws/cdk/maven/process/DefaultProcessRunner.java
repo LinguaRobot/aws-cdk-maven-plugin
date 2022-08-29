@@ -37,7 +37,7 @@ public class DefaultProcessRunner implements ProcessRunner {
 
     @Override
     public int run(List<String> command, ProcessContext processContext) {
-        CommandLine commandLine =  toCommandLine(command);
+        CommandLine commandLine = toCommandLine(command);
 
         File workingDirectory = processContext.getWorkingDirectory().orElse(defaultWorkingDirectory);
         executor.setWorkingDirectory(workingDirectory);

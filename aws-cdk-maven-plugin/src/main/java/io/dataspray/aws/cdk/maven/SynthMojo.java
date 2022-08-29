@@ -4,9 +4,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
-import io.dataspray.aws.cdk.CloudManifest;
-import io.dataspray.aws.cdk.maven.context.*;
-import io.dataspray.aws.cdk.maven.node.*;
+import io.dataspray.aws.cdk.maven.context.AmiContextProviderMapper;
+import io.dataspray.aws.cdk.maven.context.AvailabilityZonesContextProviderMapper;
+import io.dataspray.aws.cdk.maven.context.AwsClientProvider;
+import io.dataspray.aws.cdk.maven.context.AwsClientProviderBuilder;
+import io.dataspray.aws.cdk.maven.context.ContextProviderMapper;
+import io.dataspray.aws.cdk.maven.context.HostedZoneContextProviderMapper;
+import io.dataspray.aws.cdk.maven.context.SsmContextProviderMapper;
+import io.dataspray.aws.cdk.maven.context.VpcNetworkContextProviderMapper;
+import io.dataspray.aws.cdk.maven.node.LinuxNodeInstaller;
+import io.dataspray.aws.cdk.maven.node.NodeClient;
+import io.dataspray.aws.cdk.maven.node.NodeInstallationException;
+import io.dataspray.aws.cdk.maven.node.NodeInstaller;
+import io.dataspray.aws.cdk.maven.node.NodeVersion;
+import io.dataspray.aws.cdk.maven.node.UnixNodeInstaller;
+import io.dataspray.aws.cdk.maven.node.WindowsNodeInstaller;
 import io.dataspray.aws.cdk.maven.process.DefaultProcessRunner;
 import io.dataspray.aws.cdk.maven.process.ProcessContext;
 import io.dataspray.aws.cdk.maven.process.ProcessExecutionException;
@@ -18,11 +30,19 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.FileSet;
 import org.apache.maven.plugin.ContextEnabled;
-import org.apache.maven.plugins.annotations.*;
+import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.InstantiationStrategy;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.toolchain.ToolchainManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awscdk.cloudassembly.schema.AssemblyManifest;
+import software.amazon.awscdk.cloudassembly.schema.ContextProvider;
+import software.amazon.awscdk.cloudassembly.schema.Manifest;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.regions.Region;
@@ -30,7 +50,12 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.route53.Route53Client;
 import software.amazon.awssdk.services.ssm.SsmClient;
 
-import javax.json.*;
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
+import javax.json.JsonWriter;
+import javax.json.JsonWriterFactory;
 import javax.json.stream.JsonGenerator;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -38,7 +63,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -101,16 +131,16 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
     private List<String> arguments;
 
     private ProcessRunner processRunner;
-    private Map<String, ContextProvider> contextProviders;
+    private Map<ContextProvider, ContextProviderMapper> contextProviders;
 
     @Override
     public void execute(Path cloudAssemblyDirectory, EnvironmentResolver environmentResolver) {
         this.processRunner = new DefaultProcessRunner(project.getBasedir());
         this.contextProviders = initContextProviders(environmentResolver);
-        synthesize(app,arguments != null ? arguments : Collections.emptyList(), cloudAssemblyDirectory, environmentResolver);
+        synthesize(app, arguments != null ? arguments : Collections.emptyList(), cloudAssemblyDirectory, environmentResolver);
     }
 
-    private Map<String, ContextProvider> initContextProviders(EnvironmentResolver environmentResolver) {
+    private Map<ContextProvider, ContextProviderMapper> initContextProviders(EnvironmentResolver environmentResolver) {
         AwsClientProvider awsClientProvider = new AwsClientProviderBuilder()
                 .withClientFactory(Ec2Client.class, env -> buildClient(Ec2Client.builder(), environmentResolver.resolve(env)))
                 .withClientFactory(SsmClient.class, env -> buildClient(SsmClient.builder(), environmentResolver.resolve(env)))
@@ -123,12 +153,12 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
                 })
                 .build();
 
-        Map<String, ContextProvider> contextProviders = new HashMap<>();
-        contextProviders.put(AvailabilityZonesContextProvider.KEY, new AvailabilityZonesContextProvider(awsClientProvider));
-        contextProviders.put(SsmContextProvider.KEY, new SsmContextProvider(awsClientProvider));
-        contextProviders.put(HostedZoneContextProvider.KEY, new HostedZoneContextProvider(awsClientProvider));
-        contextProviders.put(VpcNetworkContextProvider.KEY, new VpcNetworkContextProvider(awsClientProvider));
-        contextProviders.put(AmiContextProvider.KEY, new AmiContextProvider(awsClientProvider));
+        Map<ContextProvider, ContextProviderMapper> contextProviders = new HashMap<>();
+        contextProviders.put(ContextProvider.AVAILABILITY_ZONE_PROVIDER, new AvailabilityZonesContextProviderMapper(awsClientProvider));
+        contextProviders.put(ContextProvider.SSM_PARAMETER_PROVIDER, new SsmContextProviderMapper(awsClientProvider));
+        contextProviders.put(ContextProvider.HOSTED_ZONE_PROVIDER, new HostedZoneContextProviderMapper(awsClientProvider));
+        contextProviders.put(ContextProvider.VPC_PROVIDER, new VpcNetworkContextProviderMapper(awsClientProvider));
+        contextProviders.put(ContextProvider.AMI_PROVIDER, new AmiContextProviderMapper(awsClientProvider));
         return contextProviders;
     }
 
@@ -138,7 +168,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
                 .build();
     }
 
-    protected CloudManifest synthesize(String app, List<String> arguments, Path outputDirectory, EnvironmentResolver environmentResolver) {
+    protected AssemblyManifest synthesize(String app, List<String> arguments, Path outputDirectory, EnvironmentResolver environmentResolver) {
         Map<String, String> environment;
         if (SystemUtils.IS_OS_WINDOWS) {
             environment = System.getenv().entrySet().stream()
@@ -172,24 +202,24 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
         JsonObject context = readContext();
 
         logger.info("Synthesizing the cloud assembly for the '{}' application", app);
-        CloudManifest cloudManifest = synthesize(app, arguments, outputDirectory, environment, context);
+        AssemblyManifest cloudManifest = synthesize(app, arguments, outputDirectory, environment, context);
 
-        while (!cloudManifest.getMissingContexts().isEmpty()) {
+        while (cloudManifest.getMissing() != null && !cloudManifest.getMissing().isEmpty()) {
             JsonObjectBuilder contextBuilder = Json.createObjectBuilder(context);
-            cloudManifest.getMissingContexts().forEach(missingContext -> {
-                String provider = missingContext.getProvider();
+            cloudManifest.getMissing().forEach(missingContext -> {
+                ContextProvider provider = missingContext.getProvider();
                 String key = missingContext.getKey();
 
-                ContextProvider contextProvider = contextProviders.get(provider);
-                if (contextProvider == null) {
+                ContextProviderMapper contextProviderMapper = contextProviders.get(provider);
+                if (contextProviderMapper == null) {
                     throw new CdkPluginException("Unable to find a context provider for '" + provider +
                             "'. Please consider updating the version of the plugin");
                 }
 
-                JsonObject properties = OBJECT_MAPPER.convertValue(missingContext.getProperties(), JsonObject.class);
+                Object contextProps = JsiiUtil.getProperty(missingContext, "props", contextProviderMapper.getContextType());
                 JsonValue contextValue;
                 try {
-                    contextValue = contextProvider.getContextValue(properties);
+                    contextValue = contextProviderMapper.getContextValue(contextProps);
                 } catch (Exception e) {
                     throw new CdkPluginException("An error occurred while resolving context value for the " +
                             "key '" + key + "' using '" + provider + "' provider: " + e.getMessage());
@@ -235,7 +265,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
         return context;
     }
 
-    private CloudManifest synthesize(String app, List<String> arguments, Path outputDirectory, Map<String, String> environment, JsonObject context) {
+    private AssemblyManifest synthesize(String app, List<String> arguments, Path outputDirectory, Map<String, String> environment, JsonObject context) {
         Map<String, String> appEnvironment;
         if (context.isEmpty()) {
             appEnvironment = environment;
@@ -261,11 +291,7 @@ public class SynthMojo extends AbstractCdkMojo implements ContextEnabled {
             throw new CdkPluginException("The synthesis has failed: the output directory doesn't exist");
         }
 
-        try {
-            return CloudManifest.create(outputDirectory);
-        } catch (IOException e) {
-            throw new CdkPluginException("Failed to read the cloud manifest", e);
-        }
+        return Manifest.loadAssemblyManifest(outputDirectory.resolve("manifest.json").toString());
     }
 
     private String toString(JsonObject context) {

@@ -11,8 +11,8 @@ public interface NodeInstaller {
      * Installs, if needed, the given version of Node.js for the current platform to the local maven repository.
      *
      * @param version Node.js version to install
-     * @throws NodeInstallationException in case the installation fails
      * @return a {@code NodeClient} for the installed Node.js
+     * @throws NodeInstallationException in case the installation fails
      */
     NodeClient install(NodeVersion version);
 

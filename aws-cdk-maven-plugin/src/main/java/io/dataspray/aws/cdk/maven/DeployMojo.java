@@ -67,15 +67,20 @@ public class DeployMojo extends AbstractCloudActionMojo {
         }
 
         ProcessRunner processRunner = new DefaultProcessRunner(project.getBasedir());
+        FileAssetPublisher filePublisher = new FileAssetPublisher();
+        DockerImageAssetPublisher dockerImagePublisher = new DockerImageAssetPublisher(processRunner);
+        AssetDeployer assetDeployer = new AssetDeployer(
+                cloudDefinition.getCloudAssemblyDirectory(),
+                new FileAssetPublisher(),
+                new DockerImageAssetPublisher(processRunner),
+                environmentResolver);
+        assetDeployer.deploy(cloudDefinition.getImageAssets(), cloudDefinition.getFileAssets());
+
         Map<String, StackDeployer> deployers = new HashMap<>();
-
-
         for (StackDefinition stack : cloudDefinition.getStacks()) {
             if (this.stacks == null || this.stacks.isEmpty() || this.stacks.contains(stack.getStackName())) {
                 StackDeployer deployer = deployers.computeIfAbsent(stack.getEnvironment(), environment -> {
                     ResolvedEnvironment resolvedEnvironment = environmentResolver.resolve(environment);
-                    DockerImageAssetPublisher dockerImagePublisher = new DockerImageAssetPublisher(resolvedEnvironment, processRunner);
-                    FileAssetPublisher filePublisher = new FileAssetPublisher(resolvedEnvironment);
                     ToolkitConfiguration toolkitConfiguration = new ToolkitConfiguration(toolkitStackName);
                     return new StackDeployer(cloudDefinition.getCloudAssemblyDirectory(), resolvedEnvironment,
                             toolkitConfiguration, filePublisher, dockerImagePublisher, settings);

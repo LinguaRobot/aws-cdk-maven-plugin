@@ -12,8 +12,8 @@ public interface ProcessRunner {
      * Starts an external process using the given command.
      *
      * @param command the command to execute
-     * @throws ProcessExecutionException in case the process fails or returns an exit code that is different from zero.
      * @return the output of the process (including error).
+     * @throws ProcessExecutionException in case the process fails or returns an exit code that is different from zero.
      */
     default String run(List<String> command) {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -29,8 +29,8 @@ public interface ProcessRunner {
      *
      * @param command the command to execute
      * @param processContext the process context
-     * @throws ProcessExecutionException in case the process fails or returns an exit code that is different from zero.
      * @return the process exit code
+     * @throws ProcessExecutionException in case the process fails or returns an exit code that is different from zero.
      */
     int run(List<String> command, ProcessContext processContext);
 

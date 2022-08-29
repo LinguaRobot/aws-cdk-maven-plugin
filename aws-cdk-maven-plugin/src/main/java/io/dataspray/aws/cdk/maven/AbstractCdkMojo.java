@@ -134,7 +134,7 @@ public abstract class AbstractCdkMojo extends AbstractMojo {
             ProfileCredentialsProvider profileCredentialsProvider = ProfileCredentialsProvider.builder()
                     .profileName(profile)
                     .build();
-            credentialsProvider= AwsCredentialsProviderChain.builder()
+            credentialsProvider = AwsCredentialsProviderChain.builder()
                     .credentialsProviders(profileCredentialsProvider, DefaultCredentialsProvider.create())
                     .build();
         } else {

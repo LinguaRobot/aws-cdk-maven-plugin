@@ -29,13 +29,11 @@ public class DockerImageAssetPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(DockerImageAssetPublisher.class);
 
-    private final ResolvedEnvironment environment;
     private final ProcessRunner processRunner;
 
     private EcrClient ecrClient;
 
-    public DockerImageAssetPublisher(ResolvedEnvironment environment,ProcessRunner processRunner) {
-        this.environment = environment;
+    public DockerImageAssetPublisher(ProcessRunner processRunner) {
         this.processRunner = processRunner;
     }
 
@@ -46,12 +44,12 @@ public class DockerImageAssetPublisher {
      * @param tag image tag
      * @param imageBuild build definition
      */
-    public void publish(String repositoryName, String tag, ImageBuild imageBuild) {
-        ImageDetail image = findImage(repositoryName, tag).orElse(null);
+    public void publish(String repositoryName, String tag, ImageBuild imageBuild, ResolvedEnvironment environment) {
+        ImageDetail image = findImage(repositoryName, tag, environment).orElse(null);
         if (image == null) {
             ensureDockerInstalled();
 
-            AuthorizationData authorizationData = getAuthorizationData()
+            AuthorizationData authorizationData = getAuthorizationData(environment)
                     .orElseThrow(() -> new CdkPluginException("Unable to retrieve authorization token from ECR"));
             try {
                 processRunner.run(toDockerLoginCommand(authorizationData));
@@ -67,8 +65,8 @@ public class DockerImageAssetPublisher {
                         ". Please make sure that the Docker daemon is running");
             }
 
-            Repository repository = findRepository(repositoryName)
-                    .orElseGet(() -> createRepository(repositoryName));
+            Repository repository = findRepository(repositoryName, environment)
+                    .orElseGet(() -> createRepository(repositoryName, environment));
             String imageUri = String.join(":", repository.repositoryUri(), tag);
             processRunner.run(ImmutableList.of("docker", "tag", imageBuild.getImageTag(), imageUri));
 
@@ -111,7 +109,7 @@ public class DockerImageAssetPublisher {
         return buildCommand;
     }
 
-    private EcrClient getEcrClient() {
+    private EcrClient getEcrClient(ResolvedEnvironment environment) {
         if (this.ecrClient == null) {
             this.ecrClient = EcrClient.builder()
                     .region(environment.getRegion())
@@ -131,7 +129,7 @@ public class DockerImageAssetPublisher {
         );
     }
 
-    private Optional<ImageDetail> findImage(String repositoryName, String imageTag) {
+    private Optional<ImageDetail> findImage(String repositoryName, String imageTag, ResolvedEnvironment environment) {
         DescribeImagesRequest describeRequest = DescribeImagesRequest.builder()
                 .repositoryName(repositoryName)
                 .imageIds(ImageIdentifier.builder()
@@ -139,19 +137,19 @@ public class DockerImageAssetPublisher {
                         .build())
                 .build();
         try {
-            DescribeImagesResponse response = getEcrClient().describeImages(describeRequest);
+            DescribeImagesResponse response = getEcrClient(environment).describeImages(describeRequest);
             return response.imageDetails().stream().findFirst();
-        } catch (ImageNotFoundException|RepositoryNotFoundException e) {
+        } catch (ImageNotFoundException | RepositoryNotFoundException e) {
             return Optional.empty();
         }
     }
 
-    private Optional<Repository> findRepository(String name) {
+    private Optional<Repository> findRepository(String name, ResolvedEnvironment environment) {
         DescribeRepositoriesRequest describeRequest = DescribeRepositoriesRequest.builder()
                 .repositoryNames(name)
                 .build();
         try {
-            DescribeRepositoriesResponse response = getEcrClient().describeRepositories(describeRequest);
+            DescribeRepositoriesResponse response = getEcrClient(environment).describeRepositories(describeRequest);
             return response.repositories().stream()
                     .findFirst();
         } catch (RepositoryNotFoundException e) {
@@ -159,16 +157,16 @@ public class DockerImageAssetPublisher {
         }
     }
 
-    private Repository createRepository(String name) {
+    private Repository createRepository(String name, ResolvedEnvironment environment) {
         CreateRepositoryRequest createRequest = CreateRepositoryRequest.builder()
                 .repositoryName(name)
                 .build();
-        CreateRepositoryResponse response = getEcrClient().createRepository(createRequest);
+        CreateRepositoryResponse response = getEcrClient(environment).createRepository(createRequest);
         return response.repository();
     }
 
-    private Optional<AuthorizationData> getAuthorizationData() {
-        return getEcrClient().getAuthorizationToken().authorizationData().stream().findFirst();
+    private Optional<AuthorizationData> getAuthorizationData(ResolvedEnvironment environment) {
+        return getEcrClient(environment).getAuthorizationToken().authorizationData().stream().findFirst();
     }
 
 }

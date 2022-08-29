@@ -3,7 +3,6 @@ package io.dataspray.aws.cdk.maven;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.dataspray.aws.cdk.AssetMetadata;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -33,9 +32,6 @@ public class StackDefinition {
     private final Map<String, String> parameterValues;
 
     @Nonnull
-    private final List<AssetMetadata> assets;
-
-    @Nonnull
     private final Map<String, Map<String, Object>> resources;
 
     @Nonnull
@@ -46,7 +42,7 @@ public class StackDefinition {
                             @Nonnull String environment,
                             @Nullable Integer requiredToolkitStackVersion,
                             @Nullable Map<String, ParameterDefinition> parameters,
-                            @Nullable Map<String, String> parameterValues, List<AssetMetadata> assets,
+                            @Nullable Map<String, String> parameterValues,
                             @Nullable Map<String, Map<String, Object>> resources,
                             @Nullable List<String> dependencies) {
         this.stackName = Objects.requireNonNull(stackName, "Stack name can't be null");
@@ -55,7 +51,6 @@ public class StackDefinition {
         this.requiredToolkitStackVersion = requiredToolkitStackVersion;
         this.parameters = parameters != null ? ImmutableMap.copyOf(parameters) : ImmutableMap.of();
         this.parameterValues = parameterValues != null ? ImmutableMap.copyOf(parameterValues) : ImmutableMap.of();
-        this.assets = assets != null ? ImmutableList.copyOf(assets) : ImmutableList.of();
         this.resources = resources != null ? ImmutableMap.copyOf(resources) : ImmutableMap.of();
         this.dependencies = dependencies != null ? ImmutableList.copyOf(dependencies) : ImmutableList.of();
     }
@@ -91,11 +86,6 @@ public class StackDefinition {
     }
 
     @Nonnull
-    public List<AssetMetadata> getAssets() {
-        return assets;
-    }
-
-    @Nonnull
     public Map<String, Map<String, Object>> getResources() {
         return resources;
     }
@@ -114,7 +104,6 @@ public class StackDefinition {
                 ", requiredToolkitStackVersion=" + requiredToolkitStackVersion +
                 ", parameters=" + parameters +
                 ", parameterValues=" + parameterValues +
-                ", assets=" + assets +
                 ", resources=" + resources +
                 '}';
     }
@@ -131,7 +120,6 @@ public class StackDefinition {
         private Integer requiredToolkitStackVersion;
         private Map<String, ParameterDefinition> parameters;
         private Map<String, String> parameterValues;
-        private List<AssetMetadata> assets;
         private Map<String, Map<String, Object>> resources;
         private List<String> dependencies;
 
@@ -168,11 +156,6 @@ public class StackDefinition {
             return this;
         }
 
-        public Builder withAssets(@Nullable List<AssetMetadata> assets) {
-            this.assets = assets;
-            return this;
-        }
-
         public Builder withResources(@Nullable Map<String, Map<String, Object>> resources) {
             this.resources = resources;
             return this;
@@ -185,7 +168,7 @@ public class StackDefinition {
 
         public StackDefinition build() {
             return new StackDefinition(stackName, templateFile, environment, requiredToolkitStackVersion, parameters,
-                    parameterValues, assets, resources, dependencies);
+                    parameterValues, resources, dependencies);
         }
     }
 }

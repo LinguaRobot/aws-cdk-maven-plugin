@@ -36,13 +36,7 @@ public class FileAssetPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(FileAssetPublisher.class);
 
-    private final ResolvedEnvironment environment;
-
     private S3AsyncClient s3Client;
-
-    public FileAssetPublisher(ResolvedEnvironment environment) {
-        this.environment = environment;
-    }
 
     /**
      * Uploads a file or a directory (zipping it before uploading) to S3 bucket.
@@ -52,21 +46,21 @@ public class FileAssetPublisher {
      * @param bucketName the name of the bucket
      * @throws IOException if I/O error occurs while uploading a file or directory
      */
-    public void publish(Path file, String objectName, String bucketName) throws IOException {
+    public void publish(Path file, String objectName, String bucketName, ResolvedEnvironment environment) throws IOException {
         logger.info("Publishing file asset, file={}, bucketName={}, objectName={}", file, bucketName, objectName);
         if (Files.isDirectory(file)) {
-            publishDirectory(file, objectName, bucketName);
+            publishDirectory(file, objectName, bucketName, environment);
         } else {
-            publishFile(file, objectName, bucketName);
+            publishFile(file, objectName, bucketName, environment);
         }
     }
 
     /**
      * Zips the directory and uploads it to S3 bucket.
      */
-    private void publishDirectory(Path directory, String objectName, String bucketName) throws IOException {
+    private void publishDirectory(Path directory, String objectName, String bucketName, ResolvedEnvironment environment) throws IOException {
         try (
-                OutputStream outputStream = new S3ObjectOutputStream(getS3Client(), bucketName, objectName, "application/zip");
+                OutputStream outputStream = new S3ObjectOutputStream(getS3Client(environment), bucketName, objectName, "application/zip");
                 ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream)
         ) {
             Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
@@ -85,13 +79,13 @@ public class FileAssetPublisher {
     /**
      * Uploads the file to S3 bucket.
      */
-    private void publishFile(Path file, String objectName, String bucketName) throws IOException {
-        try (OutputStream outputStream = new S3ObjectOutputStream(getS3Client(), bucketName, objectName)) {
+    private void publishFile(Path file, String objectName, String bucketName, ResolvedEnvironment environment) throws IOException {
+        try (OutputStream outputStream = new S3ObjectOutputStream(getS3Client(environment), bucketName, objectName)) {
             Files.copy(file, outputStream);
         }
     }
 
-    private S3AsyncClient getS3Client() {
+    private S3AsyncClient getS3Client(ResolvedEnvironment environment) {
         if (this.s3Client == null) {
             this.s3Client = S3AsyncClient.builder()
                     .region(environment.getRegion())

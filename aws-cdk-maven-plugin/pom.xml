@@ -90,10 +90,6 @@
             <artifactId>aws-cdk-maven-plugin-runtime</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.dataspray</groupId>
-            <artifactId>aws-cdk-cloud-manifest</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>

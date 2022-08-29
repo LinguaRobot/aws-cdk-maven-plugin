@@ -22,6 +22,7 @@ public class EnvironmentResolver {
     private static final String SCHEMA_PREFIX = "aws://";
     private static final String UNKNOWN_ACCOUNT = "unknown-account";
     private static final String UNKNOWN_REGION = "unknown-region";
+    private static final String CURRENT_REGION = "current_region";
 
     private final Region defaultRegion;
     private final String defaultAccount;
@@ -37,10 +38,10 @@ public class EnvironmentResolver {
      * Resolves an environment from the given environment URI.
      *
      * @param environment an environment URI in the following format: {@code aws://account/region}
+     * @return resolved environment
      * @throws IllegalArgumentException if the given environment URI is invalid
      * @throws CdkPluginException in case the given environment is account-agnostic and a default account cannot be
      * determined or if credentials cannot be resolved for the account
-     * @return resolved environment
      */
     public ResolvedEnvironment resolve(String environment) {
         if (environment.startsWith(SCHEMA_PREFIX)) {
@@ -62,6 +63,26 @@ public class EnvironmentResolver {
 
         throw new IllegalArgumentException("Invalid environment format '" + environment + "'. Expected format: " +
                 "aws://account/region");
+    }
+
+    public ResolvedEnvironment resolveFromDestination(String destinationKey) {
+        String[] parts = destinationKey.substring(SCHEMA_PREFIX.length()).split("-", 2);
+        if (parts.length == 2) {
+            String account = !parts[0].equals(UNKNOWN_ACCOUNT) ? parts[0] : defaultAccount;
+            Region region = (!parts[1].equals(UNKNOWN_REGION) && !parts[1].equals(CURRENT_REGION)) ? Region.of(parts[1]) : defaultRegion;
+            if (account == null) {
+                throw new CdkPluginException("Unable to dynamically determine which AWS account to use for deployment");
+            }
+
+            AwsCredentials credentials = accountCredentialsProvider.get(account)
+                    .orElseThrow(() -> new CdkPluginException("Credentials for the account '" + account +
+                            "' are not available."));
+
+            return new ResolvedEnvironment(region, account, credentials);
+        }
+
+        throw new IllegalArgumentException("Invalid environment format '" + destinationKey + "'. Expected format: " +
+                "account-region");
     }
 
     @Nonnull
