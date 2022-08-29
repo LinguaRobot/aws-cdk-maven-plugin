@@ -42,6 +42,10 @@ public class ResolvedEnvironment {
         return credentialsProvider;
     }
 
+    public String resolveVariables(String input) {
+        return input.replaceAll("\\$\\{AWS::Region}", region);
+    }
+
     @Override
     public String toString() {
         return getName();

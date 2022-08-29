@@ -18,6 +18,8 @@ import java.util.Optional;
 
 public class AssetDeployer {
 
+    private static final Logger logger = LoggerFactory.getLogger(AssetDeployer.class);
+
     private final Path cloudAssemblyDirectory;
     private final FileAssetPublisher fileAssetPublisher;
     private final DockerImageAssetPublisher dockerImagePublisher;
@@ -49,13 +51,15 @@ public class AssetDeployer {
             for (Map.Entry<String, FileDestination> destinationEntry : fileAsset.getDestinations().entrySet()) {
 
                 ResolvedEnvironment environment = environmentResolver.resolveFromDestination(destinationEntry.getKey());
-                String bucketName = destinationEntry.getValue().getBucketName();
+                String bucketName = environment.resolveVariables(destinationEntry.getValue().getBucketName());
                 String filename = generateFilename(fileId, fileAsset);
 
                 publishmentTasks.add(() -> {
+                    String objectName = "assets/" + filename;
+                    logger.info("Uploading file asset s3://{}/{} in {}", bucketName, objectName, environment.getRegion());
                     Path file = cloudAssemblyDirectory.resolve(fileAsset.getSource().getPath());
                     try {
-                        fileAssetPublisher.publish(file, "assets/" + filename, bucketName, environment);
+                        fileAssetPublisher.publish(file, objectName, bucketName, environment);
                     } catch (IOException e) {
                         throw StackDeploymentException.builder(environment)
                                 .withCause("An error occurred while publishing the file asset " + file)
@@ -106,6 +110,7 @@ public class AssetDeployer {
 
         return () -> {
             String localTag = String.join("-", "cdkasset", assetId.toLowerCase());
+            logger.info("Uploading container asset {} {} {} in {}", contextDirectory, dockerfilePath, localTag, environment.getRegion());
             ImageBuild imageBuild = ImageBuild.builder()
                     .withContextDirectory(contextDirectory)
                     .withDockerfile(dockerfilePath)
