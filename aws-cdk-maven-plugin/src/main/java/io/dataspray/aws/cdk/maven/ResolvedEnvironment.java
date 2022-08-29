@@ -43,7 +43,7 @@ public class ResolvedEnvironment {
     }
 
     public String resolveVariables(String input) {
-        return input.replaceAll("\\$\\{AWS::Region}", region);
+        return input.replaceAll("\\$\\{AWS::Region}", region.id());
     }
 
     @Override
