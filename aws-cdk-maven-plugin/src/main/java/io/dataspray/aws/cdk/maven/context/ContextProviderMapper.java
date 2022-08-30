@@ -13,10 +13,13 @@ public interface ContextProviderMapper<T> {
      * The implementation is expected to throw an exception if an error occurs while providing the value or if some of
      * the properties are missing or have invalid values.
      *
-     * @param properties the properties based on which the contextual information will be provided
+     * @param props the properties based on which the contextual information will be provided
      * @return the context value represented as a JSON
      */
     JsonValue getContextValue(T props);
 
+    /**
+     * @return context type
+     */
     Class<T> getContextType();
 }

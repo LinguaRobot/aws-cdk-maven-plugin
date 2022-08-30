@@ -43,6 +43,7 @@ public class DockerImageAssetPublisher {
      * @param repositoryName the name of the repository
      * @param tag image tag
      * @param imageBuild build definition
+     * @param environment resolved environment
      */
     public void publish(String repositoryName, String tag, ImageBuild imageBuild, ResolvedEnvironment environment) {
         ImageDetail image = findImage(repositoryName, tag, environment).orElse(null);

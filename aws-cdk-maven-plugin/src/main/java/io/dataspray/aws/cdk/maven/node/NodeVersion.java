@@ -23,21 +23,21 @@ public class NodeVersion implements Comparable<NodeVersion> {
     }
 
     /**
-     * Returns major version number.
+     * @return major version number
      */
     public int getMajorVersion() {
         return versions[0];
     }
 
     /**
-     * Returns minor version number.
+     * @return minor version number
      */
     public int getMinorVersion() {
         return versions[1];
     }
 
     /**
-     * Returns revision version number.
+     * @return revision version number
      */
     public int getRevisionVersion() {
         return versions[2];
@@ -64,7 +64,8 @@ public class NodeVersion implements Comparable<NodeVersion> {
     }
 
     /**
-     * Returns an {@code Optional} with a {@code NodeVersion} representing the version of Node.js parsed from the given
+     * @param version version to parse
+     * @return an {@code Optional} with a {@code NodeVersion} representing the version of Node.js parsed from the given
      * value or an empty {@code Optional} in case the given value cannot be parsed.
      */
     public static Optional<NodeVersion> parse(String version) {
@@ -86,6 +87,10 @@ public class NodeVersion implements Comparable<NodeVersion> {
 
     /**
      * Creates {@code NodeVersion} from the given versions.
+     * @param major major version number
+     * @param minor minor version number
+     * @param revision revision version number
+     * @return node version
      */
     public static NodeVersion of(int major, int minor, int revision) {
         return new NodeVersion(new int[]{major, minor, revision});

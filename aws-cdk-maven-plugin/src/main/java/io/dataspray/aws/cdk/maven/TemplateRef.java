@@ -18,6 +18,7 @@ public class TemplateRef {
 
     /**
      * Returns a template url or {@code null} in case this is a reference to the template body.
+     * @return url
      */
     @Nullable
     public String getUrl() {
@@ -27,6 +28,7 @@ public class TemplateRef {
     /**
      * Returns a template body or {@code null} if the template is uploaded to S3 and the reference represents template
      * URL.
+     * @return body
      */
     @Nullable
     public String getBody() {

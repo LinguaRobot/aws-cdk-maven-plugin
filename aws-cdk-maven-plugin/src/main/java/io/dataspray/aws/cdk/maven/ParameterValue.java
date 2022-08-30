@@ -49,6 +49,7 @@ public class ParameterValue {
 
     /**
      * Creates a parameter value that will preserve its previous value after update.
+     * @return unchanged parameter value
      */
     public static ParameterValue unchanged() {
         return UNCHANGED;
@@ -56,6 +57,8 @@ public class ParameterValue {
 
     /**
      * Creates a parameter value with the given {@code value}.
+     * @param value
+     * @return parameter value
      */
     public static ParameterValue value(String value) {
         return new ParameterValue(Objects.requireNonNull(value, "The value cannot be null"));
