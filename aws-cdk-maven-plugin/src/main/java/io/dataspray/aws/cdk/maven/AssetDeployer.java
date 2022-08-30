@@ -18,8 +18,6 @@ import java.util.Optional;
 
 public class AssetDeployer {
 
-    private static final Logger logger = LoggerFactory.getLogger(AssetDeployer.class);
-
     private final Path cloudAssemblyDirectory;
     private final FileAssetPublisher fileAssetPublisher;
     private final DockerImageAssetPublisher dockerImagePublisher;
@@ -56,7 +54,6 @@ public class AssetDeployer {
 
                 publishmentTasks.add(() -> {
                     String objectName = "assets/" + filename;
-                    logger.info("Uploading file asset s3://{}/{} in {}", bucketName, objectName, environment.getRegion());
                     Path file = cloudAssemblyDirectory.resolve(fileAsset.getSource().getPath());
                     try {
                         fileAssetPublisher.publish(file, objectName, bucketName, environment);
@@ -110,7 +107,6 @@ public class AssetDeployer {
 
         return () -> {
             String localTag = String.join("-", "cdkasset", assetId.toLowerCase());
-            logger.info("Uploading container asset {} {} {} in {}", contextDirectory, dockerfilePath, localTag, environment.getRegion());
             ImageBuild imageBuild = ImageBuild.builder()
                     .withContextDirectory(contextDirectory)
                     .withDockerfile(dockerfilePath)
