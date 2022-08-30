@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 public class AssetDeployer {
@@ -44,19 +45,18 @@ public class AssetDeployer {
         }
 
         for (Map.Entry<String, FileAsset> entry : fileAssets.entrySet()) {
-            String fileId = entry.getKey();
             FileAsset fileAsset = entry.getValue();
+            Objects.requireNonNull(fileAsset.getSource().getPath(),
+                    "File asset has no path indicating an executable to be called to produce the asset which is not yet supported");
             for (Map.Entry<String, FileDestination> destinationEntry : fileAsset.getDestinations().entrySet()) {
-
                 ResolvedEnvironment environment = environmentResolver.resolveFromDestination(destinationEntry.getKey());
                 String bucketName = environment.resolveVariables(destinationEntry.getValue().getBucketName());
-                String filename = generateFilename(fileId, fileAsset);
+                String objectKey = destinationEntry.getValue().getObjectKey();
 
                 publishmentTasks.add(() -> {
-                    String objectName = "assets/" + filename;
                     Path file = cloudAssemblyDirectory.resolve(fileAsset.getSource().getPath());
                     try {
-                        fileAssetPublisher.publish(file, objectName, bucketName, environment);
+                        fileAssetPublisher.publish(file, objectKey, bucketName, environment);
                     } catch (IOException e) {
                         throw StackDeploymentException.builder(environment)
                                 .withCause("An error occurred while publishing the file asset " + file)
@@ -126,20 +126,4 @@ public class AssetDeployer {
 
         return Optional.of(dockerfile).filter(Files::exists);
     }
-
-    private String generateFilename(String id, FileAsset fileAsset) {
-        StringBuilder fileName = new StringBuilder();
-        fileName.append(id);
-        if (FileAssetPackaging.ZIP_DIRECTORY.equals(fileAsset.getSource().getPackaging())) {
-            fileName.append('.').append(StackDeployer.ZIP_PACKAGING);
-        } else {
-            int extensionDelimiter = fileAsset.getSource().getPath().lastIndexOf('.');
-            if (extensionDelimiter > 0) {
-                fileName.append(fileAsset.getSource().getPath().substring(extensionDelimiter));
-            }
-        }
-
-        return fileName.toString();
-    }
-
 }
