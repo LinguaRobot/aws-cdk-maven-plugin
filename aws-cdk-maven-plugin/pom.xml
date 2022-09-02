@@ -4,7 +4,7 @@
 
     <parent>
         <groupId>io.dataspray</groupId>
-        <artifactId>aws-cdk</artifactId>
+        <artifactId>aws-cdk-parent</artifactId>
         <version>1.1.0-SNAPSHOT</version>
     </parent>
 
@@ -39,107 +39,10 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- AWS Dependencies -->
-
-        <dependency>
-            <groupId>software.amazon.awscdk</groupId>
-            <artifactId>core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>cloudformation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>s3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>sts</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>route53</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>ec2</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>ssm</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>ecr</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>elasticloadbalancingv2</artifactId>
-            <scope>test</scope>
-        </dependency>
-
         <!-- Other Dependencies -->
-
         <dependency>
             <groupId>io.dataspray</groupId>
-            <artifactId>aws-cdk-maven-plugin-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.dataspray</groupId>
-            <artifactId>aws-cdk-maven-plugin-runtime</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-compress</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-exec</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>javax.json</groupId>
-            <artifactId>javax.json-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>javax.json</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr353</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-guava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-        </dependency>
-
-        <!-- Test Dependencies -->
-
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <scope>test</scope>
+            <artifactId>aws-cdk</artifactId>
         </dependency>
     </dependencies>
 
@@ -148,52 +51,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-invoker-plugin</artifactId>
-                <configuration>
-                    <skipInstallation>${skipITs}</skipInstallation>
-                    <skipInvocation>${skipITs}</skipInvocation>
-                    <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
-                    <pomIncludes>
-                        <pomInclude>*/pom.xml</pomInclude>
-                    </pomIncludes>
-                    <preBuildHookScript>setup</preBuildHookScript>
-                    <postBuildHookScript>verify</postBuildHookScript>
-                    <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
-                    <settingsFile>src/it/settings.xml</settingsFile>
-                    <streamLogs>true</streamLogs>
-                    <addTestClassPath>true</addTestClassPath>
-                    <environmentVariables>
-                        <AWS_REGION>us-east-1</AWS_REGION>
-                    </environmentVariables>
-                    <mavenOpts>
-                        -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-                    </mavenOpts>
-                    <goals>
-                        <goal>clean</goal>
-                        <goal>deploy</goal>
-                    </goals>
-                    <parallelThreads>8</parallelThreads>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>integration-test</id>
-                        <goals>
-                            <goal>install</goal>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>groovy-all</artifactId>
-                        <version>3.0.12</version>
-                        <type>pom</type>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
